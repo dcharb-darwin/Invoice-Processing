@@ -1,0 +1,56 @@
+{
+    "version": "1.0.0",
+    "lastUpdated": "2026-02-25",
+    "triggers": {
+        "timeIntervalMinutes": 30,
+        "tokenThreshold": 5000,
+        "toolCallThreshold": 10,
+        "onHandoff": true,
+        "manualCommand": "/run-anti-drift-audit"
+    },
+    "checks": [
+        {
+            "id": "memory-bank-consistency",
+            "description": "All memory bank files exist and are not stale",
+            "files": [
+                "agents/memory-bank/lessons.md",
+                "agents/memory-bank/decisions.md",
+                "agents/memory-bank/current-state.md",
+                "agents/memory-bank/invariants.md",
+                "agents/memory-bank/module-registry.json"
+            ],
+            "maxStalenessHours": 24
+        },
+        {
+            "id": "invariant-compliance",
+            "description": "No invariant in invariants.md is violated",
+            "source": "agents/memory-bank/invariants.md"
+        },
+        {
+            "id": "prd-reflects-implementation",
+            "description": "PRD sections match implemented modules",
+            "prdPath": "docs/comprehensive-prd.md",
+            "registryPath": "agents/memory-bank/module-registry.json"
+        },
+        {
+            "id": "commit-traceability",
+            "description": "All recent commits have [trace:] tags",
+            "command": "git log --oneline -10"
+        },
+        {
+            "id": "module-registry-accuracy",
+            "description": "Module status in registry matches filesystem",
+            "registryPath": "agents/memory-bank/module-registry.json"
+        },
+        {
+            "id": "skills-library-intact",
+            "description": "All 12 project skills have valid SKILL.md files",
+            "skillsPath": ".agent/skills/"
+        }
+    ],
+    "onDriftDetected": {
+        "action": "propose-rewind",
+        "requiresHumanConfirmation": true,
+        "notifyChannel": "chat"
+    }
+}

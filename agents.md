@@ -1,6 +1,6 @@
 # ANTIGRAVITY SWARM — Swarm-Driven Spreadsheet Standardization
 **Project:** Invoice Processing Coordinator (V1 → V2)
-**Pattern Version:** 2026-02-25 Memory-Governance-Git-Docs-PRD-Rapid-POC FINAL Edition
+**Pattern Version:** 2026-02-25 Memory-Governance-Git-Docs-PRD-Rapid-POC-AntiDrift-SkillsLibrary FINAL Edition
 **Stack:** React 19 / Express / tRPC / Drizzle / SQLite (exact TaskLine gen2 match)
 **Source of Truth:** `00-discovery-extraction.md` + `01-development-plan.md` + `discovery-session-transcript.txt`
 
@@ -17,7 +17,7 @@ This swarm builds a **rapid proof-of-concept / semi-functional mockup** — NOT 
 ## 1. MEMORY & GOVERNANCE LAYER (mandatory)
 
 **Brain Folder:** `agents/memory-bank/`
-**Files (auto-created):** agents.md, lessons.md, decisions.md, current-state.md, module-registry.json, invariants.md
+**Files (auto-created):** agents.md, lessons.md, decisions.md, current-state.md, module-registry.json, invariants.md, anti-drift-config.json
 
 **Strict read order:** agents.md → lessons.md → current-state.md → module-registry.json
 
@@ -33,17 +33,60 @@ This swarm builds a **rapid proof-of-concept / semi-functional mockup** — NOT 
 6. **ReviewerAgent** (mandatory gatekeeper) — reviews all PRs and PRD changes
 7. **TesterAgent** (browser-in-loop) — acceptance criteria verification
 8. **DocumentationAgent** — maintains living PRD + demo package
+9. **AntiDriftAgent** (periodic + event-triggered) — governance, drift detection, rewind proposals
 
 **Multi-Agent CLI Support:**
 - **Antigravity** (Gemini) — primary orchestrator, reads this file
 - **Claude Code** — reads `CLAUDE.md` (synced with this file)
 - **Codex CLI** — reads `codex-instructions.md` (synced with this file)
 
-All three agents share the same `agents/memory-bank/` for continuity.
+All three agents share the same `agents/memory-bank/` and `.agent/skills/` for continuity.
 
 ---
 
-## 3. RAPID POC INVARIANTS (enforced)
+## 3. SKILLS LIBRARY STRATEGY (2026 Claude Code / Antigravity Best Practices)
+
+**Location:** `.agent/skills/` (Antigravity-native, 100% cross-compatible with Claude Code `.claude/skills/`, Cursor, Copilot, Codex — write once, use everywhere)
+
+**Structure per Skill** (enforced on creation):
+- Subfolder (kebab-case, e.g. `xlsx-shannon-parser/`)
+  - `SKILL.md` (required)
+    - YAML frontmatter (name, description, triggers, version) — always loaded for discovery
+    - Body: Overview, When to Use, Core Instructions, Examples, Success Criteria
+  - `scripts/` (optional — Python/Bash for deterministic tasks; agents run with `--help` first)
+  - `references/` (optional — docs, examples)
+  - `assets/` (optional — templates)
+
+**2026 Best Practices (enforced by DocumentationAgent + AntiDriftAgent):**
+- Progressive disclosure: Frontmatter always in context; full body only when relevant; references loaded on demand (saves tokens)
+- Single responsibility — one focused capability per skill
+- Concise: Body < 400 tokens
+- Composability: No assumption of being the only skill
+- Clear triggers in YAML for auto-activation
+- Git-versioned: Skills committed with draft PRs
+
+**Project-Specific Skills (auto-created during init):**
+
+| # | Skill | Purpose |
+|---|-------|---------|
+| 1 | `xlsx-shannon-parser` | Parses Shannon's BTR Expense Tracking formats |
+| 2 | `xlsx-eric-parser` | Parses Eric's 18013_Budget style spreadsheets |
+| 3 | `drizzle-schema-generator` | Creates Drizzle models + migrations from discovery schema |
+| 4 | `budget-auto-generator` | Contract → budget line items auto-generation |
+| 5 | `gutcheck-engine` | Computes & flags %spent vs %scope |
+| 6 | `living-prd-updater` | Maintains docs/comprehensive-prd.md |
+| 7 | `anti-drift-auditor` | Runs governance checks, detects drift |
+| 8 | `git-worktree-manager` | Creates/prunes worktrees + draft PRs |
+| 9 | `demo-package-generator` | Screenshots, instructions, handover zip |
+| 10 | `traceability-enforcer` | Adds [trace:] comments to commits |
+| 11 | `skill-creator-meta` | Meta-skill to generate new skills on demand |
+| 12 | `reviewer-gate` | Standardized ReviewerAgent workflow |
+
+**Skills are auto-loaded** by Antigravity/Claude when relevant — no manual slash commands needed.
+
+---
+
+## 4. RAPID POC INVARIANTS (enforced)
 
 - Build for demo-readiness in hours/days.
 - Seed with real Eric 18013 + Shannon 36th St Bridge data immediately.
@@ -54,41 +97,57 @@ All three agents share the same `agents/memory-bank/` for continuity.
 
 ---
 
-## 4. LIVING PRD STRATEGY (PRIMARY DELIVERABLE)
+## 5. ANTI-DRIFT AGENT (periodic)
 
-**Location:** `docs/comprehensive-prd.md` (auto-created and updated)
+Triggers: every 30 min, after 5k tokens, after 10 tool calls, after every handoff, or `/run-anti-drift-audit`.
+Proposes rewind on any drift (human confirmation required).
 
-**Automatic Sections Maintained by DocumentationAgent**
-- Executive Summary
-- Full Requirements (traced to discovery)
-- Data Model + diagrams
-- Features & Flows (updated per module)
-- Acceptance Criteria (checked off live)
-- Gut-Check Engine
-- Import/Export Standard
-- **Things You Didn't Think Of** (full extraction from 01-dev-plan)
-- Prototype Limitations (explicit "this code is POC — rewrite as needed")
-- Demo Instructions + Customer Review Script
-- Traceability Matrix
-- PRD Changelog & Versioning
+**Config:** `agents/memory-bank/anti-drift-config.json`
+**Skill used:** `anti-drift-auditor`
 
-**Skills:** `/update-living-prd <module>`, `/regenerate-full-prd`, `/generate-demo-package`, `/finalize-handover`, `/governance-audit`
+Checks:
+- Memory bank files are consistent and up-to-date
+- No invariant violations
+- PRD reflects implemented state
+- All commits have `[trace:]` tags
+- Module registry matches filesystem
+- Skills library is intact
+
+---
+
+## 6. LIVING PRD STRATEGY (PRIMARY DELIVERABLE)
+
+**Location:** `docs/comprehensive-prd.md` (auto-updated after every module + every AntiDrift check)
+
+**Skills used:** living-prd-updater, demo-package-generator, traceability-enforcer
 
 **Human Review Gate:** Every PRD update creates a draft PR that **requires human approval** before merge.
 
 ---
 
-## 5. GIT & VERSION CONTROL (2026 Best Practices)
+## 7. GIT & VERSION CONTROL (2026 Best Practices)
 
-- One git worktree per module (when applicable)
+- One git worktree per module
 - Draft PRs only (never push directly to main)
-- Conventional commits with `[trace: ...]` linking to discovery requirements
+- Conventional commits with `[trace: ...]`
 - Protected main + CI + Reviewer + human approval
 - PR template includes PRD update summary
 
 ---
 
-## 6. MODULES
+## 8. STRICT HANDOFF PROTOCOL
+
+```
+Specialist → worktree → commit → draft PR
+  → Reviewer + Tester + AntiDrift + Skills check
+  → DocumentationAgent updates PRD
+  → Human review gate on PRD
+  → Planner merges → prune worktree
+```
+
+---
+
+## 9. MODULES
 
 | Order | Module | Description |
 |-------|--------|-------------|
@@ -101,35 +160,15 @@ All three agents share the same `agents/memory-bank/` for continuity.
 
 ---
 
-## 7. STRICT HANDOFF PROTOCOL
+## 10. DAILY COMMANDS
 
 ```
-Specialist → worktree → commit → draft PR
-  → Reviewer + Tester
-  → DocumentationAgent updates PRD
-  → Human review gate on PRD
-  → Planner merges → prune worktree
-```
-
----
-
-## 8. SETUP (completed)
-
-1. ✅ Discovery docs uploaded to workspace
-2. ✅ Git repo initialized
-3. ✅ Memory bank created (`agents/memory-bank/`)
-4. ✅ Living PRD stub created (`docs/comprehensive-prd.md`)
-5. ✅ Workflows created (`.agents/workflows/`)
-6. ✅ Cross-agent configs: `CLAUDE.md`, `codex-instructions.md`
-
----
-
-## 9. DAILY COMMANDS
-
-```
-/update-living-prd <module>     — Update PRD after module work
-/regenerate-full-prd            — Full PRD regeneration from source docs
-/generate-demo-package          — Create demo instructions + screenshots
-/finalize-handover              — Zip PRD + seed data + demo instructions
-/governance-audit               — Verify memory bank, PRD, invariants
+Initialize Swarm-Driven Spreadsheet Standardization with Memory-Governance-Git-Docs-PRD-Rapid-POC-AntiDrift-SkillsLibrary FINAL Edition
+Start Data Foundation Module
+Run anti-drift-audit
+Update living PRD for CoreLogic
+Generate demo package
+Create new skill <name>              # uses meta skill-creator
+Finalize handover
+Run governance-audit
 ```
