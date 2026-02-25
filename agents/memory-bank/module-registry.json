@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-02-25",
+  "modules": {
+    "data-foundation": {
+      "status": "not-started",
+      "owner": "DataModelAgent",
+      "files": [],
+      "prdSections": ["Data Model"],
+      "dependencies": []
+    },
+    "core-logic": {
+      "status": "not-started",
+      "owner": "BusinessLogicAgent",
+      "files": [],
+      "prdSections": ["Gut-Check Engine", "Features & Flows"],
+      "dependencies": ["data-foundation"]
+    },
+    "user-interactions": {
+      "status": "not-started",
+      "owner": "FrontendAgent",
+      "files": [],
+      "prdSections": ["Features & Flows", "Acceptance Criteria"],
+      "dependencies": ["data-foundation", "core-logic"]
+    },
+    "interoperability": {
+      "status": "not-started",
+      "owner": "ImportExportAgent",
+      "files": [],
+      "prdSections": ["Import/Export Standard"],
+      "dependencies": ["data-foundation"]
+    },
+    "v2-extensions": {
+      "status": "not-started",
+      "owner": "FrontendAgent",
+      "files": [],
+      "prdSections": ["Features & Flows"],
+      "dependencies": ["data-foundation", "core-logic", "user-interactions"]
+    },
+    "documentation": {
+      "status": "in-progress",
+      "owner": "DocumentationAgent",
+      "files": ["docs/comprehensive-prd.md"],
+      "prdSections": ["ALL"],
+      "dependencies": []
+    }
+  }
+}
