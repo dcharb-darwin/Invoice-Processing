@@ -1,0 +1,47 @@
+{
+    "name": "invoice-processing-coordinator",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "Capital project budget tracking — replaces manual spreadsheets for Lake Stevens Public Works",
+    "scripts": {
+        "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+        "dev:client": "vite",
+        "dev:server": "tsx watch server/index.ts",
+        "build": "tsc && vite build",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "tsx server/db/migrate.ts",
+        "db:seed": "tsx server/db/seed.ts",
+        "db:reset": "rm -f data/ipc.db && npm run db:migrate && npm run db:seed"
+    },
+    "dependencies": {
+        "@tanstack/react-query": "^5.90.21",
+        "@trpc/client": "^11.10.0",
+        "@trpc/react-query": "^11.10.0",
+        "@trpc/server": "^11.10.0",
+        "better-sqlite3": "^12.6.2",
+        "cors": "^2.8.6",
+        "drizzle-orm": "^0.45.1",
+        "express": "^5.2.1",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "superjson": "^2.2.6",
+        "xlsx": "^0.18.5",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "^4.2.1",
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.1.4",
+        "concurrently": "^9.2.1",
+        "drizzle-kit": "^0.31.9",
+        "tailwindcss": "^4.2.1",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1"
+    }
+}

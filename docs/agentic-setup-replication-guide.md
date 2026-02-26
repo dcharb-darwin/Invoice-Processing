@@ -515,8 +515,8 @@ echo "=== Workflows ===" && ls .agents/workflows/
 # Test Claude Code (OAuth)
 claude --print "Say hello"
 
-# Test Codex (OAuth)
-codex exec "Say hello"
+# Test Codex (interactive — needs a TTY)
+codex "Say hello"
 ```
 
 Expected output: both respond with "hello" (or similar), no auth errors.
@@ -581,5 +581,71 @@ The `skill-creator-meta` skill handles the rest.
 /governance-audit
 ```
 
-In Codex: `codex exec "Run governance audit on this project"`
-In Claude: `claude --print "Run /governance-audit"`
+In Codex: `codex --full-auto "Run governance audit on this project"`
+In Claude: `claude -p "Run /governance-audit" --dangerously-skip-permissions`
+
+---
+
+## Orchestration Dispatch — Running Workers in Background
+
+> **Problem:** When an orchestrator agent (e.g. Antigravity/Gemini) dispatches Claude Code
+> or Codex via `run_command`, background processes receive SIGINT and die.
+>
+> **Solution:** Use `screen -dmS` for process isolation.
+
+### Dispatching Claude Code
+
+```bash
+# --dangerously-skip-permissions allows autonomous file writes
+screen -dmS claude-worker bash -c '
+  cd /path/to/project && \
+  claude -p "<detailed task prompt>" --dangerously-skip-permissions \
+  > /tmp/claude-worker.log 2>&1
+'
+```
+
+**Key flags:**
+- `-p "..."` — pipe mode (non-interactive, prompt as argument)
+- `--dangerously-skip-permissions` — allows file read/write/execute without approval
+
+### Dispatching Codex
+
+```bash
+# Codex requires a TTY — use `script` to fake one inside screen
+screen -dmS codex-worker bash -c '
+  cd /path/to/project && \
+  script -q /tmp/codex-worker.log \
+  command codex --full-auto "<detailed task prompt>"
+'
+```
+
+**Key flags:**
+- `--full-auto` — reads, writes, and executes without approval
+- `script -q` — provides the pseudo-TTY that Codex requires
+
+### Monitoring Workers
+
+```bash
+# List active screen sessions
+screen -ls
+
+# Check worker output
+tail -f /tmp/claude-worker.log
+tail -f /tmp/codex-worker.log
+
+# Attach to a session (for debugging)
+screen -r claude-worker
+
+# Check if files were created
+ls -la <expected-output-files>
+```
+
+### Orchestration Tips
+
+1. **One task per worker** — give each worker a single, self-contained task
+2. **Reference existing code** — tell workers to read specific files for patterns
+   (e.g. "match the pattern in `server/routers/gutcheck.ts`")
+3. **Workers share the filesystem** — coordinate to avoid write conflicts
+4. **Log everything** — redirect all output to `/tmp/<name>.log` for debugging
+5. **Use unique screen names** — `screen -dmS claude-export`, `screen -dmS codex-docker`, etc.
+6. **Clean up** — `screen -S <name> -X quit` after verifying output

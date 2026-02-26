@@ -42,3 +42,5 @@ yarn-error.log*
 
 # Gemini agent brain (local only)
 .gemini/
+data/*.db-shm
+data/*.db-wal

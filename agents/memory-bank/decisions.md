@@ -24,3 +24,17 @@
 **Decision:** Budget line item totals are COMPUTED from invoice task breakdowns, never manually maintained.
 **Rationale:** When Shannon logs an invoice broken down by task, those amounts roll up automatically. No separate "update budget totals" workflow.
 **Source:** `01-development-plan.md` lines 286-288, `00-discovery-extraction.md` line 139
+
+## DEC-004: Orchestration Dispatch Pattern
+
+**Date:** 2026-02-25
+**Decision:** Use `screen -dmS` for dispatching Claude Code and Codex as background workers.
+**Rationale:** Direct `run_command` backgrounding causes SIGINT (exit 130). `screen` provides proper process isolation. Codex also needs `script -q` for TTY emulation.
+**Impact:** Documented in `docs/agentic-setup-replication-guide.md` — reusable across all projects.
+
+## DEC-005: TaskLine Visual Parity
+
+**Date:** 2026-02-25
+**Decision:** Invoice app uses same design language as TaskLine: light-mode default, dark mode toggle, blue-600 accent.
+**Rationale:** Separate apps but should feel like the same platform. User explicitly requested visual parity.
+**Implementation:** CSS custom properties as design tokens, Tailwind classes for layout.
