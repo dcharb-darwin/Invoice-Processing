@@ -172,6 +172,24 @@ export default function InvoicePipeline() {
                             )}
                         </div>
 
+                        {/* Document links */}
+                        {(selectedInvoice.sourcePdfPath || selectedInvoice.signedPdfPath) && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Documents</p>
+                                    <p className="flex items-center gap-1.5">
+                                        {selectedInvoice.sourcePdfPath && (
+                                            <a href={selectedInvoice.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">📄 Source</a>
+                                        )}
+                                        {selectedInvoice.sourcePdfPath && selectedInvoice.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
+                                        {selectedInvoice.signedPdfPath && (
+                                            <a href={selectedInvoice.signedPdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">✅ Signed</a>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Task breakdowns */}
                         {selectedInvoice.taskBreakdowns && selectedInvoice.taskBreakdowns.length > 0 && (
                             <div className="rounded-lg shadow-sm p-3 space-y-1.5" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>

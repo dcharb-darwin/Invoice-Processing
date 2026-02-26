@@ -69,6 +69,8 @@ export const grantsRouter = router({
                     vendor: inv.vendor,
                     amount: inv.totalAmount,
                     date: inv.dateReceived,
+                    sourcePdfPath: inv.sourcePdfPath,
+                    signedPdfPath: inv.signedPdfPath,
                     taskBreakdowns: inv.taskBreakdowns.map((tb) => ({
                         taskCode: tb.taskCode,
                         taskDescription: tb.taskDescription,

@@ -337,6 +337,12 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                                         <h4 className="font-semibold text-base">{contract.vendor}</h4>
                                         <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
                                             {contract.contractNumber || "No contract #"} · {contract.type}
+                                            {contract.signedDocumentLink && (
+                                                <>
+                                                    {" · "}
+                                                    <a href={contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Contract</a>
+                                                </>
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -448,6 +454,17 @@ function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice }: {
                                             {inv.invoiceNumber}
                                         </span>
                                         <StatusBadge status={inv.status} />
+                                        {(inv.sourcePdfPath || inv.signedPdfPath) && (
+                                            <span className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                {inv.sourcePdfPath && (
+                                                    <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">📄 Source</a>
+                                                )}
+                                                {inv.sourcePdfPath && inv.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
+                                                {inv.signedPdfPath && (
+                                                    <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">✅ Signed</a>
+                                                )}
+                                            </span>
+                                        )}
                                         {hasBreakdowns && (
                                             <span className="text-xs transition-transform duration-200" style={{ color: "var(--color-text-muted)", display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
                                                 ▶

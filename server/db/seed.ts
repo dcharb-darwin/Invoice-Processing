@@ -65,7 +65,7 @@ async function seed() {
             contractNumber: "PSA-2024-001",
             type: "Design",
             originalAmount: 185_000_00, // $185,000
-            signedDocumentLink: "sharepoint://contracts/PSA-2024-001-signed.pdf",
+            signedDocumentLink: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Contracts/18013/PSA-2024-001-signed.pdf",
         })
         .returning();
 
@@ -96,6 +96,7 @@ async function seed() {
             contractNumber: "PSA-2024-002",
             type: "CM_Services",
             originalAmount: 95_000_00, // $95,000
+            signedDocumentLink: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Contracts/18013/PSA-2024-002-signed.pdf",
         })
         .returning();
 
@@ -106,6 +107,7 @@ async function seed() {
         contractNumber: "CON-2025-001",
         type: "Construction",
         originalAmount: 850_000_00, // $850,000
+        signedDocumentLink: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Contracts/18013/CON-2025-001-signed.pdf",
     });
 
     // Budget line items [trace: dev-plan L107-115, L146-155]
@@ -142,6 +144,8 @@ async function seed() {
             dateReceived: "2025-03-15",
             dateApproved: "2025-03-20",
             status: "Paid",
+            sourcePdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/18013/DEA-2025-001.pdf",
+            signedPdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/18013/DEA-2025-001-signed.pdf",
         })
         .returning();
 
@@ -165,6 +169,8 @@ async function seed() {
             status: "Paid",
             grantEligible: true,
             grantCode: "FHWA-2025",
+            sourcePdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/18013/DEA-2025-002.pdf",
+            signedPdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/18013/DEA-2025-002-signed.pdf",
         })
         .returning();
 
@@ -186,6 +192,7 @@ async function seed() {
             status: "Reviewed",
             grantEligible: true,
             grantCode: "FHWA-2025",
+            sourcePdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/18013/DEA-2025-003.pdf",
         })
         .returning();
 
@@ -244,7 +251,7 @@ async function seed() {
             contractNumber: "PSA-2024-010",
             type: "Design",
             originalAmount: 320_000_00,
-            signedDocumentLink: "sharepoint://contracts/catherine-creek-psa-signed.pdf",
+            signedDocumentLink: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Contracts/19045/PSA-2024-010-signed.pdf",
         })
         .returning();
 
@@ -271,6 +278,8 @@ async function seed() {
             dateReceived: "2025-04-01",
             dateApproved: "2025-04-10",
             status: "Paid",
+            sourcePdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/19045/DEA-599518.pdf",
+            signedPdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/19045/DEA-599518-signed.pdf",
         })
         .returning();
 
@@ -290,6 +299,7 @@ async function seed() {
             totalAmount: 24_000_00,
             dateReceived: "2025-05-15",
             status: "Logged",
+            sourcePdfPath: "https://lakestevenswa.sharepoint.com/sites/PublicWorks/Invoices/19045/SW-161983.pdf",
         })
         .returning();
 

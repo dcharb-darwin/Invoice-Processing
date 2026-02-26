@@ -95,6 +95,7 @@ All three agents share the same `agents/memory-bank/` and `.agent/skills/` for c
 - Never spend more than 30 minutes on a single component before showing progress.
 - If blocked, skip and return — demo momentum is everything.
 - **In-Context Drilldown Principle:** If we show data anywhere, clicking it must reveal source detail in-context (inline expand, not just navigate away). Every rendered element is a potential drilldown target.
+- **Pluggable Document Storage:** Every invoice, contract, and supplement links to its original source material (PDF, scan, etc.). The URL is a simple string — for Lake Stevens it's SharePoint (`https://lakestevenswa.sharepoint.com/...`); other orgs may use GDrive, OneDrive, Box, or local paths. Schema fields: `sourcePdfPath`/`signedPdfPath` (invoices), `signedDocumentLink` (contracts). Every UI that shows these records must display "📄 View Source" links that open in a new tab.
 
 ---
 

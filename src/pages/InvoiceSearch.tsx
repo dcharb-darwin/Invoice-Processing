@@ -178,6 +178,22 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                             </div>
                                         )}
 
+                                        {/* Documents */}
+                                        {(inv.sourcePdfPath || inv.signedPdfPath) && (
+                                            <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Documents</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    {inv.sourcePdfPath && (
+                                                        <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Source</a>
+                                                    )}
+                                                    {inv.sourcePdfPath && inv.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
+                                                    {inv.signedPdfPath && (
+                                                        <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>✅ Signed</a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Task breakdowns */}
                                         {inv.taskBreakdowns && inv.taskBreakdowns.length > 0 && (
                                             <div className="rounded-lg shadow-sm p-3 space-y-1.5" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
