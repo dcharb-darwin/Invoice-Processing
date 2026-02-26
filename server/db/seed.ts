@@ -26,6 +26,7 @@ async function seed() {
             description: "Main Street corridor improvements including design, ROW acquisition, and construction",
             status: "Active",
             projectManager: "Eric",
+            budgetSpreadsheetPath: "/documents/budgets/18013_Budget.xlsx",
         })
         .returning();
 
@@ -221,6 +222,7 @@ async function seed() {
             description: "Catherine Creek bridge replacement — design phase",
             status: "Active",
             projectManager: "Shannon",
+            budgetSpreadsheetPath: "/documents/budgets/BTR Expense Tracking Worksheet_36th St Bridge.xlsx",
         })
         .returning();
 

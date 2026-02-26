@@ -80,6 +80,7 @@ CREATE TABLE `projects` (
 	`status` text DEFAULT 'Active',
 	`project_manager` text,
 	`council_auth_date` text,
+	`budget_spreadsheet_path` text,
 	`taskline_project_id` integer,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL

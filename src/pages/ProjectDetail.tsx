@@ -139,6 +139,19 @@ export default function ProjectDetail({
                     </div>
                     <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
                         PM: {project.projectManager} · #{project.projectNumber}
+                        {project.budgetSpreadsheetPath && (
+                            <>
+                                {" · "}
+                                <a
+                                    href={project.budgetSpreadsheetPath}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${sourceLabel(project.budgetSpreadsheetPath).className}`}
+                                >
+                                    📊 Budget Spreadsheet
+                                </a>
+                            </>
+                        )}
                     </p>
                 </div>
                 <button

@@ -51,6 +51,7 @@ export const projects = sqliteTable("projects", {
     status: text("status").default("Active"),
     projectManager: text("project_manager"),
     councilAuthDate: text("council_auth_date"),
+    budgetSpreadsheetPath: text("budget_spreadsheet_path"), // URL to source budget spreadsheet [trace: PRD §3.7]
     tasklineProjectId: integer("taskline_project_id"), // Future: API sync
     createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
     updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),

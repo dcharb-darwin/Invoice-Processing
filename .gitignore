@@ -35,6 +35,10 @@ yarn-error.log*
 *.docx
 *.pdf
 
+# Archived discovery assets
+archive/
+TaskLine - Project Management and Scheduling/
+
 # SQLite databases
 *.db
 *.sqlite

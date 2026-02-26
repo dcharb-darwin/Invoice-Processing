@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "lastUpdated": "2026-02-25T18:42",
+  "version": "1.2.0",
+  "lastUpdated": "2026-02-26T14:55",
   "modules": {
     "data-foundation": {
       "status": "complete",
@@ -10,6 +10,7 @@
         "server/db/index.ts",
         "server/db/seed.ts",
         "server/db/migrate.ts",
+        "server/db/migrations/0000_flawless_yellowjacket.sql",
         "drizzle.config.ts"
       ],
       "prdSections": [
@@ -28,6 +29,8 @@
         "server/routers/fundingSources.ts",
         "server/routers/gutcheck.ts",
         "server/routers/export.ts",
+        "server/routers/import.ts",
+        "server/routers/grants.ts",
         "server/router.ts",
         "server/trpc.ts",
         "server/index.ts"
@@ -42,7 +45,9 @@
       "completedBy": "Antigravity + Claude Code (export.ts)",
       "skillsUsed": [
         "gutcheck-engine",
-        "budget-auto-generator"
+        "budget-auto-generator",
+        "xlsx-eric-parser",
+        "xlsx-shannon-parser"
       ]
     },
     "user-interactions": {
@@ -54,9 +59,11 @@
         "src/index.css",
         "src/lib/trpc.ts",
         "src/lib/format.ts",
+        "src/lib/sourceLabels.ts",
         "src/pages/ProjectsList.tsx",
         "src/pages/ProjectDetail.tsx",
         "src/pages/InvoiceSearch.tsx",
+        "src/pages/ImportPage.tsx",
         "index.html"
       ],
       "prdSections": [
@@ -68,13 +75,15 @@
         "core-logic"
       ],
       "completedBy": "Antigravity",
-      "notes": "Restyled to match TaskLine light-mode design. Dark mode toggle available."
+      "notes": "Restyled to match TaskLine light-mode design. Dark mode toggle. MVP/Vision toggle implemented."
     },
     "interoperability": {
-      "status": "in-progress",
+      "status": "complete",
       "owner": "ImportExportAgent",
       "files": [
-        "server/routers/export.ts"
+        "server/routers/export.ts",
+        "server/routers/import.ts",
+        "src/pages/ImportPage.tsx"
       ],
       "prdSections": [
         "Import/Export Standard"
@@ -82,20 +91,20 @@
       "dependencies": [
         "data-foundation"
       ],
-      "completedBy": "Claude Code (export)",
-      "remaining": [
-        "xlsx-eric-parser import",
-        "xlsx-shannon-parser import"
-      ],
+      "completedBy": "Claude Code (export) + Antigravity (import)",
       "skillsUsed": [
         "xlsx-eric-parser",
         "xlsx-shannon-parser"
       ]
     },
     "v2-extensions": {
-      "status": "not-started",
+      "status": "complete",
       "owner": "FrontendAgent",
-      "files": [],
+      "files": [
+        "src/pages/PortfolioDashboard.tsx",
+        "src/pages/InvoicePipeline.tsx",
+        "src/pages/GrantPackage.tsx"
+      ],
       "prdSections": [
         "Features & Flows"
       ],
@@ -103,19 +112,44 @@
         "data-foundation",
         "core-logic",
         "user-interactions"
+      ],
+      "completedBy": "Antigravity",
+      "notes": "Portfolio dashboard, invoice pipeline Kanban, grant reimbursement package builder"
+    },
+    "containerization": {
+      "status": "partial",
+      "owner": "DevOpsAgent",
+      "files": [
+        "Dockerfile",
+        "docker-compose.yml",
+        ".dockerignore"
+      ],
+      "prdSections": [],
+      "dependencies": [],
+      "completedBy": "Codex",
+      "remaining": [
+        "Docker smoke test"
       ]
     },
     "documentation": {
-      "status": "in-progress",
+      "status": "complete",
       "owner": "DocumentationAgent",
       "files": [
-        "docs/comprehensive-prd.md"
+        "docs/comprehensive-prd.md",
+        "docs/demo-instructions.md",
+        "docs/customer-review-script.md",
+        "docs/agentic-setup-replication-guide.md",
+        "docs/discovery/00-discovery-extraction.md",
+        "docs/discovery/01-development-plan.md",
+        "docs/discovery/02-taskline-gen2-suggestions.md",
+        "docs/discovery/AgenticSetup.md",
+        "docs/discovery/discovery-session-transcript.txt"
       ],
       "prdSections": [
         "ALL"
       ],
       "dependencies": [],
-      "notes": "PRD needs update to reflect Modules 2-4 implementation"
+      "completedBy": "Antigravity"
     }
   }
 }
