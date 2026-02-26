@@ -72,11 +72,10 @@ export default function InvoicePipeline() {
                                 <div
                                     key={inv.id}
                                     onClick={() => setSelectedInvoiceId(selectedInvoiceId === inv.id ? null : inv.id)}
-                                    className={`rounded-lg shadow-sm p-3 text-sm border-l-[3px] cursor-pointer hover:shadow-md transition-all ${
-                                        status === "Paid"
+                                    className={`rounded-lg shadow-sm p-3 text-sm border-l-[3px] cursor-pointer hover:shadow-md transition-all ${status === "Paid"
                                             ? "border-l-emerald-500"
                                             : "border-l-blue-600"
-                                    } ${selectedInvoiceId === inv.id ? "ring-2 ring-blue-500" : ""}`}
+                                        } ${selectedInvoiceId === inv.id ? "ring-2 ring-blue-500" : ""}`}
                                     style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                                 >
                                     <div className="font-mono text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
@@ -165,7 +164,17 @@ export default function InvoicePipeline() {
                                     <div>
                                         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Contract #</p>
                                         <p className="font-medium font-mono text-xs">
-                                            {(selectedInvoice as any).contract.contractNumber || "—"} · {(selectedInvoice as any).contract.type}
+                                            <a
+                                                href={`#/project/${selectedInvoice.projectId}/contracts`}
+                                                className="text-blue-700 dark:text-blue-300 hover:underline"
+                                            >{(selectedInvoice as any).contract.contractNumber || "—"}</a>
+                                            {" · "}{(selectedInvoice as any).contract.type}
+                                            {(selectedInvoice as any).contract.signedDocumentLink && (
+                                                <>
+                                                    {" · "}
+                                                    <a href={(selectedInvoice as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">📄 Contract</a>
+                                                </>
+                                            )}
                                         </p>
                                     </div>
                                 </>

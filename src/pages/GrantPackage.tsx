@@ -225,6 +225,38 @@ export default function GrantPackage() {
                                             </div>
                                         )}
 
+                                        {/* Contract info */}
+                                        {(inv as any).contract && (
+                                            <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Contract</p>
+                                                <div className="grid grid-cols-3 gap-3 text-sm">
+                                                    <div>
+                                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Vendor</p>
+                                                        <p className="font-medium">{(inv as any).contract.vendor}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Number</p>
+                                                        <p className="font-medium font-mono text-xs">
+                                                            <a
+                                                                href={`#/project/${selectedProjectId}/contracts`}
+                                                                className="text-blue-700 dark:text-blue-300 hover:underline"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >{(inv as any).contract.contractNumber || "—"}</a>
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Type</p>
+                                                        <p className="font-medium flex items-center gap-1.5">
+                                                            {(inv as any).contract.type}
+                                                            {(inv as any).contract.signedDocumentLink && (
+                                                                <a href={(inv as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Contract</a>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* View in Project link */}
                                         {selectedProjectId !== "" && (
                                             <div className="pt-2 border-t" style={{ borderColor: "var(--color-border-light)" }}>

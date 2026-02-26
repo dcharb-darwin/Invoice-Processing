@@ -256,6 +256,7 @@ function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: 
                         <th className="px-4 py-3 font-medium text-right">% Spent</th>
                         <th className="px-4 py-3 font-medium text-right">% Scope</th>
                         <th className="px-4 py-3 font-medium text-center">Health</th>
+                        <th className="px-4 py-3 font-medium text-center" style={{ width: "40px" }}></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -284,6 +285,7 @@ function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: 
                                 <td className="px-4 py-3 text-center">
                                     <span className={`inline-block w-3 h-3 rounded-full ${healthColor}`} title={alert?.message || "On track"} />
                                 </td>
+                                <td className="px-4 py-3 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>→</td>
                             </tr>
                         );
                     })}
@@ -299,6 +301,7 @@ function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: 
                                 ? formatPercent((project.computed.totalPaid / project.computed.totalProjected) * 100)
                                 : "—"}
                         </td>
+                        <td className="px-4 py-3" />
                         <td className="px-4 py-3" />
                         <td className="px-4 py-3" />
                     </tr>
@@ -380,7 +383,12 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                                         <div className="space-y-1">
                                             {contract.supplements.map((sup: any) => (
                                                 <div key={sup.id} className="flex justify-between text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                                                    <span>#{sup.supplementNumber} — {sup.description || "No description"}</span>
+                                                    <span className="flex items-center gap-1.5">
+                                                        #{sup.supplementNumber} — {sup.description || "No description"}
+                                                        {sup.signedDocumentLink && (
+                                                            <a href={sup.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄</a>
+                                                        )}
+                                                    </span>
                                                     <span className="font-medium">{formatMoney(sup.amount)}</span>
                                                 </div>
                                             ))}
@@ -395,8 +403,15 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                                             {contractInvoices.map((inv: any) => (
                                                 <div key={inv.id} className="flex items-center justify-between text-sm" style={{ color: "var(--color-text-secondary)" }}>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-mono text-xs text-blue-700 dark:text-blue-300">{inv.invoiceNumber}</span>
+                                                        <a
+                                                            href={`#/project/${project.id}/invoices`}
+                                                            className="font-mono text-xs text-blue-700 dark:text-blue-300 hover:underline"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >{inv.invoiceNumber}</a>
                                                         <StatusBadge status={inv.status} />
+                                                        {inv.sourcePdfPath && (
+                                                            <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Source</a>
+                                                        )}
                                                     </div>
                                                     <span className="font-medium">{formatMoney(inv.totalAmount)}</span>
                                                 </div>

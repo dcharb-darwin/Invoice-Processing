@@ -56,7 +56,7 @@ export const grantsRouter = router({
                     eq(schema.invoices.grantEligible, true),
                     eq(schema.invoices.grantCode, input.grantCode),
                 ),
-                with: { taskBreakdowns: true },
+                with: { taskBreakdowns: true, contract: true },
             });
 
             const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
@@ -71,6 +71,12 @@ export const grantsRouter = router({
                     date: inv.dateReceived,
                     sourcePdfPath: inv.sourcePdfPath,
                     signedPdfPath: inv.signedPdfPath,
+                    contract: inv.contract ? {
+                        contractNumber: inv.contract.contractNumber,
+                        vendor: inv.contract.vendor,
+                        type: inv.contract.type,
+                        signedDocumentLink: inv.contract.signedDocumentLink,
+                    } : null,
                     taskBreakdowns: inv.taskBreakdowns.map((tb) => ({
                         taskCode: tb.taskCode,
                         taskDescription: tb.taskDescription,

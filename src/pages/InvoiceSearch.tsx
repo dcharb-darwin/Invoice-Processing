@@ -168,11 +168,22 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                                     </div>
                                                     <div>
                                                         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Number</p>
-                                                        <p className="font-medium font-mono text-xs">{(inv as any).contract.contractNumber || "—"}</p>
+                                                        <p className="font-medium font-mono text-xs">
+                                                            <a
+                                                                href={`#/project/${inv.projectId}/contracts`}
+                                                                className="text-blue-700 dark:text-blue-300 hover:underline"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >{(inv as any).contract.contractNumber || "—"}</a>
+                                                        </p>
                                                     </div>
                                                     <div>
                                                         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Type</p>
-                                                        <p className="font-medium">{(inv as any).contract.type}</p>
+                                                        <p className="font-medium flex items-center gap-1.5">
+                                                            {(inv as any).contract.type}
+                                                            {(inv as any).contract.signedDocumentLink && (
+                                                                <a href={(inv as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Contract</a>
+                                                            )}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
