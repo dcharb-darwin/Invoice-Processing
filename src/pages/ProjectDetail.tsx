@@ -55,9 +55,13 @@ export default function ProjectDetail({
 
     const { data: project, isLoading, refetch } = trpc.projects.byId.useQuery({ id: projectId });
     const { data: alerts } = trpc.gutcheck.forProject.useQuery({ projectId });
+    const { data: syncStatus, refetch: refetchSync } = trpc.sync.status.useQuery({ projectId });
     const createInvoice = trpc.invoices.create.useMutation({ onSuccess: () => { refetch(); setShowInvoiceForm(false); } });
     const addSupplement = trpc.contracts.addSupplement.useMutation({ onSuccess: () => refetch() });
     const createFunding = trpc.fundingSources.create.useMutation({ onSuccess: () => refetch() });
+    const pushToTaskline = trpc.sync.pushToTaskline.useMutation({
+        onSuccess: () => { refetch(); refetchSync(); },
+    });
 
     const handleAlertClick = useCallback((alert: any) => {
         setActiveTab("budget");
@@ -154,13 +158,29 @@ export default function ProjectDetail({
                         )}
                     </p>
                 </div>
-                <button
-                    onClick={handleExport}
-                    disabled={exporting}
-                    className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
-                >
-                    {exporting ? "Exporting…" : "Export .xlsx"}
-                </button>
+                <div className="flex items-center gap-2">
+                    {/* Sync status / Push to TaskLine */}
+                    {syncStatus?.linked ? (
+                        <span className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5">
+                            🔗 TaskLine #{syncStatus.tasklineProjectId}
+                        </span>
+                    ) : (
+                        <button
+                            onClick={() => pushToTaskline.mutate({ projectId })}
+                            disabled={pushToTaskline.isPending}
+                            className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                        >
+                            {pushToTaskline.isPending ? "Pushing…" : "⬆ Push to TaskLine"}
+                        </button>
+                    )}
+                    <button
+                        onClick={handleExport}
+                        disabled={exporting}
+                        className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                    >
+                        {exporting ? "Exporting…" : "Export .xlsx"}
+                    </button>
+                </div>
             </div>
 
             {/* Gut-Check Alerts */}

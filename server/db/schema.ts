@@ -53,6 +53,8 @@ export const projects = sqliteTable("projects", {
     councilAuthDate: text("council_auth_date"),
     budgetSpreadsheetPath: text("budget_spreadsheet_path"), // URL to source budget spreadsheet [trace: PRD §3.7]
     tasklineProjectId: integer("taskline_project_id"), // Future: API sync
+    syncDirection: text("sync_direction"), // "taskline_to_ipc" | "ipc_to_taskline" | null
+    lastSyncedAt: text("last_synced_at"), // ISO timestamp of last successful sync
     createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
     updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });

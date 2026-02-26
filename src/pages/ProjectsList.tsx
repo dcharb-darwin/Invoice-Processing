@@ -2,6 +2,10 @@ import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney } from "../lib/format.js";
 
+const SYNC_BADGE = {
+    linked: { text: "🔗 TaskLine", className: "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30" },
+    unlinked: { text: "⚡ Local", className: "text-gray-500 bg-gray-50 dark:text-gray-400 dark:bg-gray-800" },
+};
 /**
  * Projects list — TaskLine-matching light-mode cards.
  * [trace: dev-plan L66-77 — project listing with budget summary]
@@ -9,7 +13,20 @@ import { formatMoney } from "../lib/format.js";
 export default function ProjectsList({ onSelectProject }: { onSelectProject: (id: number) => void }) {
     const { data: projects, isLoading, error } = trpc.projects.list.useQuery();
     const [exportingId, setExportingId] = useState<number | null>(null);
+    const [showTasklineModal, setShowTasklineModal] = useState(false);
     const utils = trpc.useUtils();
+
+    const { data: tasklineProjects } = trpc.sync.listTasklineProjects.useQuery(
+        undefined,
+        { enabled: showTasklineModal }
+    );
+    const importMutation = trpc.sync.receiveFromTaskline.useMutation({
+        onSuccess: () => {
+            utils.projects.list.invalidate();
+            utils.sync.listTasklineProjects.invalidate();
+        },
+    });
+
     const handleExport = async (e: React.MouseEvent, projectId: number) => {
         e.stopPropagation();
         setExportingId(projectId);
@@ -50,6 +67,9 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
         );
     }
 
+    const syncBadge = (project: any) =>
+        project.tasklineProjectId ? SYNC_BADGE.linked : SYNC_BADGE.unlinked;
+
     return (
         <div>
             <div className="flex items-center justify-between mb-6">
@@ -59,6 +79,12 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                         {projects?.length || 0} active projects · Budget tracking from seeded data
                     </p>
                 </div>
+                <button
+                    onClick={() => setShowTasklineModal(true)}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2"
+                >
+                    🔄 Import from TaskLine
+                </button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -116,6 +142,18 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                     PM: {project.projectManager || "Unassigned"} · {project.contracts?.length || 0} contracts
                                 </p>
 
+                                {/* Sync badge */}
+                                <div className="mb-3">
+                                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${syncBadge(project).className}`}>
+                                        {syncBadge(project).text}
+                                    </span>
+                                    {project.tasklineProjectId && (
+                                        <span className="text-[10px] ml-1" style={{ color: "var(--color-text-muted)" }}>
+                                            TL#{project.tasklineProjectId}
+                                        </span>
+                                    )}
+                                </div>
+
                                 {/* Budget bar */}
                                 <div className="mb-2">
                                     <div className="flex justify-between text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -125,8 +163,8 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                     <div className="w-full h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                         <div
                                             className={`h-full rounded-full transition-all ${pctUsed > 95 ? "bg-red-500" :
-                                                    pctUsed > 85 ? "bg-amber-500" :
-                                                        "bg-emerald-500"
+                                                pctUsed > 85 ? "bg-amber-500" :
+                                                    "bg-emerald-500"
                                                 }`}
                                             style={{ width: `${Math.min(pctUsed, 100)}%` }}
                                         />
@@ -149,6 +187,63 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                     );
                 })}
             </div>
+
+            {/* TaskLine Import Modal */}
+            {showTasklineModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center"
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowTasklineModal(false); }}
+                    style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
+                >
+                    <div
+                        className="rounded-xl border shadow-2xl overflow-hidden"
+                        style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", width: "600px", maxHeight: "70vh" }}
+                    >
+                        <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
+                            <h3 className="font-semibold">Import from TaskLine</h3>
+                            <button onClick={() => setShowTasklineModal(false)} className="text-sm hover:text-red-500 p-1" style={{ color: "var(--color-text-muted)" }}>✕</button>
+                        </div>
+                        <div className="p-5 space-y-3 overflow-y-auto" style={{ maxHeight: "calc(70vh - 52px)" }}>
+                            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                                Select a TaskLine capital project to import into Invoice Processing:
+                            </p>
+                            {!tasklineProjects ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                </div>
+                            ) : (
+                                tasklineProjects.map((tlp) => (
+                                    <div
+                                        key={tlp.id}
+                                        className="rounded-lg border p-4 flex items-center justify-between"
+                                        style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-border)" }}
+                                    >
+                                        <div>
+                                            <p className="font-medium text-sm">{tlp.name}</p>
+                                            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                                {tlp.type} · PM: {tlp.projectManager} · Budget: {formatMoney(tlp.budget)} · Status: {tlp.status}
+                                            </p>
+                                        </div>
+                                        {tlp.alreadyLinked ? (
+                                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-md bg-emerald-50 dark:bg-emerald-900/30">
+                                                ✓ Linked
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => importMutation.mutate({ tasklineProjectId: tlp.id })}
+                                                disabled={importMutation.isPending}
+                                                className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                                            >
+                                                {importMutation.isPending ? "Importing..." : "Import"}
+                                            </button>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

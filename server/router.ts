@@ -7,6 +7,7 @@ import { gutcheckRouter } from "./routers/gutcheck.js";
 import { exportRouter } from "./routers/export.js";
 import { importRouter } from "./routers/import.js";
 import { grantsRouter } from "./routers/grants.js";
+import { tasklineSyncRouter } from "./routers/tasklineSync.js";
 
 export const appRouter = router({
     projects: projectsRouter,
@@ -17,6 +18,8 @@ export const appRouter = router({
     export: exportRouter,
     import: importRouter,
     grants: grantsRouter,
+    sync: tasklineSyncRouter,
 });
 
 export type AppRouter = typeof appRouter;
+
