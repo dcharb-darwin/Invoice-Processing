@@ -420,6 +420,33 @@ Returns base64-encoded xlsx data with a suggested filename.
 
 ---
 
+### 3.7 Source Reference Drill-and-Display (cross-cutting pattern)
+
+**Applies to:** Every entity that can reference an external source document — contracts (`signedDocumentLink`), invoices (`sourcePdfPath`, `signedPdfPath`), supplements (`signedDocumentLink`), funding sources (future), budget spreadsheets (future).
+
+**Core principle:** If the system stores a reference to an external document, clicking it must either display the actual source material OR honestly communicate that no real source is on file.
+
+#### Source Types (ordered by fidelity)
+
+| Type | Detection | UI Treatment | Example |
+|------|-----------|-------------|---------|
+| **Real source** | URL ends in `.pdf`, `.xlsx`, `.xls`, `.doc`, `.docx` | Bold blue link: "📄 Source PDF" / "📄 Contract PDF" | Shannon's `David Evans 599518.pdf` |
+| **External URL** | URL starts with `http://` or `https://` | Blue link: "🔗 External Link" | Future SharePoint/GDrive links |
+| **Demo/mockup** | URL ends in `.html` (local generated file) | Gray italic link: "📄 Demo" | Eric's Main Street invoices (no real PDFs provided) |
+| **No source** | Field is null/empty | No link rendered. Optionally: "(no source on file)" text | New records entered manually |
+
+#### Rules
+
+1. **Same record, same treatment everywhere.** If invoice DEA-599518 has a real PDF, every surface that renders this invoice (InvoicesTab, Pipeline, Search, Grants) shows "📄 Source PDF" — not "📄 Source" on one page and nothing on another.
+2. **Shared helper, not per-component logic.** Source type detection and label rendering live in a single shared utility (`src/lib/sourceLabels.ts`). Components consume the helper — they never implement detection logic themselves.
+3. **Demo content is clearly labeled.** Generated HTML pages include a visible "⚠️ DEMO DOCUMENT" banner. The link text in the app says "📄 Demo" (gray, italic) — never "📄 Source" which implies real material.
+4. **Storage is pluggable.** The field stores a URL string. The system makes no assumption about WHERE the file is hosted (local path, SharePoint, GDrive, OneDrive, Box, S3). Authentication is handled by the storage backend, not by this app.
+5. **Budget spreadsheets are source documents too.** Each project's budget spreadsheet (Eric's `.xlsx`, Shannon's BTR worksheet) is a source document and should be linkable from the project header.
+
+[trace: agents.md §4 — Source Document Provenance]
+
+---
+
 ## 4. API Reference
 
 All APIs are exposed via **tRPC** at `/api/trpc`. The server runs on port 3001 with CORS enabled. A health check endpoint exists at `GET /api/health`.
