@@ -1,15 +1,29 @@
+import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate } from "../lib/format.js";
 
 const STATUSES = ["Received", "Logged", "Reviewed", "Signed", "Paid"] as const;
 
+const statusColors: Record<string, string> = {
+    Received: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
+    Logged: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    Reviewed: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    Signed: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+    Paid: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+};
+
 export default function InvoicePipeline() {
     const { data: invoices, isLoading } = trpc.invoices.listAll.useQuery();
+    const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
 
     const lanes = STATUSES.map((status) => ({
         status,
         invoices: (invoices ?? []).filter((inv) => (inv.status ?? "Received") === status),
     }));
+
+    const selectedInvoice = selectedInvoiceId
+        ? (invoices ?? []).find((inv) => inv.id === selectedInvoiceId)
+        : null;
 
     if (isLoading) {
         return (
@@ -57,14 +71,12 @@ export default function InvoicePipeline() {
                             {laneInvoices.map((inv) => (
                                 <div
                                     key={inv.id}
-                                    onClick={() => {
-                                        window.location.hash = `/project/${inv.projectId}/invoices`;
-                                    }}
+                                    onClick={() => setSelectedInvoiceId(selectedInvoiceId === inv.id ? null : inv.id)}
                                     className={`rounded-lg shadow-sm p-3 text-sm border-l-[3px] cursor-pointer hover:shadow-md transition-all ${
                                         status === "Paid"
                                             ? "border-l-emerald-500"
                                             : "border-l-blue-600"
-                                    }`}
+                                    } ${selectedInvoiceId === inv.id ? "ring-2 ring-blue-500" : ""}`}
                                     style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                                 >
                                     <div className="font-mono text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
@@ -85,6 +97,109 @@ export default function InvoicePipeline() {
                     </div>
                 ))}
             </div>
+
+            {/* Inline detail panel */}
+            {selectedInvoice && (
+                <div
+                    className="mt-4 rounded-xl border shadow-sm overflow-hidden transition-all"
+                    style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+                >
+                    <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
+                        <div className="flex items-center gap-3">
+                            <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                {selectedInvoice.invoiceNumber}
+                            </span>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColors[selectedInvoice.status ?? "Received"]}`}>
+                                {selectedInvoice.status}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => setSelectedInvoiceId(null)}
+                            className="text-sm hover:text-red-500 transition-colors p-1"
+                            style={{ color: "var(--color-text-muted)" }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                        {/* Invoice details grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Vendor</p>
+                                <p className="font-medium">{selectedInvoice.vendor || "Unknown"}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Amount</p>
+                                <p className="font-bold">{formatMoney(selectedInvoice.totalAmount)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Date Received</p>
+                                <p className="font-medium">{formatDate(selectedInvoice.dateReceived)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Date Approved</p>
+                                <p className="font-medium">{selectedInvoice.dateApproved ? formatDate(selectedInvoice.dateApproved) : "—"}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Status</p>
+                                <p className="font-medium">{selectedInvoice.status}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Grant Eligible</p>
+                                <p className="font-medium">
+                                    {selectedInvoice.grantEligible ? (
+                                        <span className="text-emerald-600 dark:text-emerald-400">{selectedInvoice.grantCode || "Yes"}</span>
+                                    ) : "No"}
+                                </p>
+                            </div>
+                            {(selectedInvoice as any).contract && (
+                                <>
+                                    <div>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Contract</p>
+                                        <p className="font-medium">{(selectedInvoice as any).contract.vendor}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Contract #</p>
+                                        <p className="font-medium font-mono text-xs">
+                                            {(selectedInvoice as any).contract.contractNumber || "—"} · {(selectedInvoice as any).contract.type}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Task breakdowns */}
+                        {selectedInvoice.taskBreakdowns && selectedInvoice.taskBreakdowns.length > 0 && (
+                            <div className="rounded-lg shadow-sm p-3 space-y-1.5" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Task Breakdowns</p>
+                                {selectedInvoice.taskBreakdowns.map((tb) => (
+                                    <div key={tb.id} className="flex justify-between text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                        <span>
+                                            {tb.taskCode && <span className="font-mono mr-2" style={{ color: "var(--color-text-muted)" }}>{tb.taskCode}</span>}
+                                            {tb.taskDescription}
+                                        </span>
+                                        <span className="font-medium">{formatMoney(tb.amount)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Go to project link */}
+                        <div className="pt-2 border-t" style={{ borderColor: "var(--color-border-light)" }}>
+                            <a
+                                href={`#/project/${selectedInvoice.projectId}/invoices`}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                            >
+                                Go to Project →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

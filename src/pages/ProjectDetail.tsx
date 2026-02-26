@@ -29,19 +29,28 @@ export default function ProjectDetail({
     onBack: () => void;
     initialTab?: string;
 }) {
-    const [activeTab, setActiveTab] = useState<Tab>(
-        (initialTab && TAB_MAP[initialTab]) || "budget"
-    );
+    // Derive active tab from URL hash on mount (most robust — hash is source of truth)
+    const getTabFromHash = (): Tab => {
+        const hash = window.location.hash.slice(1);
+        const parts = hash.split("/");
+        const tabSegment = parts[3]; // e.g. "invoices", "contracts", "funding", "row"
+        return (tabSegment && TAB_MAP[tabSegment]) || "budget";
+    };
+
+    const [activeTab, setActiveTab] = useState<Tab>(getTabFromHash);
     const [showInvoiceForm, setShowInvoiceForm] = useState(false);
     const [flashBliId, setFlashBliId] = useState<number | null>(null);
     const budgetTableRef = useRef<HTMLDivElement>(null);
 
-    // Sync active tab when navigating from another page (e.g. Pipeline → #/project/1/invoices)
+    // Also sync if hash changes while mounted (e.g. user clicks pipeline card while already on detail)
     useEffect(() => {
-        if (initialTab && TAB_MAP[initialTab]) {
-            setActiveTab(TAB_MAP[initialTab]);
-        }
-    }, [initialTab]);
+        const onHashChange = () => {
+            const newTab = getTabFromHash();
+            setActiveTab(newTab);
+        };
+        window.addEventListener("hashchange", onHashChange);
+        return () => window.removeEventListener("hashchange", onHashChange);
+    }, []);
 
     const { data: project, isLoading, refetch } = trpc.projects.byId.useQuery({ id: projectId });
     const { data: alerts } = trpc.gutcheck.forProject.useQuery({ projectId });

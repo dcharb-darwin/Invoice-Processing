@@ -94,6 +94,33 @@ All three agents share the same `agents/memory-bank/` and `.agent/skills/` for c
 - Prototype code is disposable; PRD is permanent.
 - Never spend more than 30 minutes on a single component before showing progress.
 - If blocked, skip and return — demo momentum is everything.
+- **In-Context Drilldown Principle:** If we show data anywhere, clicking it must reveal source detail in-context (inline expand, not just navigate away). Every rendered element is a potential drilldown target.
+
+---
+
+## 4.5 PRD-FIRST HOLISTIC DESIGN (enforced on every dispatch)
+
+**Problem Solved:** Workers building features in isolation create inconsistent UX, siloed logic, and miss cross-cutting concerns. The PRD is the system's brain — workers must think with it.
+
+**Rules:**
+
+1. **Every dispatch prompt MUST include:** "Read CLAUDE.md (or codex-instructions.md) AND docs/comprehensive-prd.md first for full system context."
+2. **Design principles are system-wide, not per-component.** When adding a feature to one page, the dispatch must specify how it relates to other pages that show the same data. (Example: if Pipeline shows invoices, and ProjectDetail shows invoices, and Search shows invoices — an invoice drilldown behavior must be consistent across ALL THREE.)
+3. **PRD is updated BEFORE implementation** (not after). The DocumentationAgent or orchestrator adds the feature to the PRD first, establishing the expected behavior, then dispatches the implementation.
+4. **Cross-cutting concerns checklist** (included in every dispatch):
+   - Does this feature affect data shown on other pages?
+   - Does clicking this data behave consistently across every page it appears on?
+   - Does the styling match the system-wide design tokens?
+   - Is the new feature connected to existing navigation (deep-links, back buttons)?
+
+**Dispatch Template (updated):**
+```
+"Read CLAUDE.md AND docs/comprehensive-prd.md first for full architecture and design context.
+
+SYSTEM CONTEXT: [Brief summary of how this feature relates to other pages/components]
+DESIGN PRINCIPLE: [Any cross-cutting principle that applies, e.g., in-context drilldown]
+TASK: [Specific implementation instructions]"
+```
 
 ---
 

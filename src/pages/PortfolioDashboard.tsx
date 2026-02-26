@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatPercent } from "../lib/format.js";
 
@@ -66,6 +67,17 @@ export default function PortfolioDashboard({
     onSelectProject: (id: number) => void;
 }) {
     const { data: projects, isLoading, error } = trpc.projects.list.useQuery();
+    const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+    // Fetch detail for selected project
+    const { data: projectDetail } = trpc.projects.byId.useQuery(
+        { id: selectedProjectId! },
+        { enabled: selectedProjectId !== null }
+    );
+    const { data: projectAlerts } = trpc.gutcheck.forProject.useQuery(
+        { projectId: selectedProjectId! },
+        { enabled: selectedProjectId !== null }
+    );
 
     const rows: PortfolioRow[] = (projects ?? []).map((project) => {
         const p = project as any;
@@ -124,6 +136,10 @@ export default function PortfolioDashboard({
     );
     const totalRemaining = totals.budget - totals.paid;
 
+    const handleRowClick = (id: number) => {
+        setSelectedProjectId(selectedProjectId === id ? null : id);
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -163,6 +179,96 @@ export default function PortfolioDashboard({
                 <MetricCard label="Total Remaining" value={formatMoney(totalRemaining)} />
             </div>
 
+            {/* Quick-glance detail panel for selected project */}
+            {selectedProjectId !== null && projectDetail && (
+                <div
+                    className="rounded-xl border shadow-sm overflow-hidden transition-all"
+                    style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+                >
+                    <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
+                        <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-base">{projectDetail.name}</h3>
+                            <span className="text-xs font-semibold text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
+                                CFP #{projectDetail.cfpNumber}
+                            </span>
+                            {projectAlerts && projectAlerts.length > 0 && (
+                                <span className="text-xs font-medium px-2 py-0.5 rounded bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                                    {projectAlerts.length} alert{projectAlerts.length !== 1 ? "s" : ""}
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setSelectedProjectId(null)}
+                            className="text-sm hover:text-red-500 transition-colors p-1"
+                            style={{ color: "var(--color-text-muted)" }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                        {/* Summary stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Total Budget</p>
+                                <p className="font-bold">{formatMoney(projectDetail.computed.totalBudget)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Total Paid</p>
+                                <p className="font-bold">{formatMoney(projectDetail.computed.totalPaid)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Contracts</p>
+                                <p className="font-bold">{projectDetail.contracts.length}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Invoices</p>
+                                <p className="font-bold">{projectDetail.invoices.length}</p>
+                            </div>
+                        </div>
+
+                        {/* Budget category bars */}
+                        {projectDetail.budgetLineItems.length > 0 && (
+                            <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Budget Categories</p>
+                                <div className="space-y-2">
+                                    {projectDetail.budgetLineItems.map((bli: any) => {
+                                        const pct = bli.projectedCost > 0 ? (bli.computed.paidToDate / bli.projectedCost) * 100 : 0;
+                                        const barColor = pct > 95 ? "bg-red-500" : pct > 75 ? "bg-amber-500" : "bg-blue-500";
+                                        return (
+                                            <div key={bli.id}>
+                                                <div className="flex items-center justify-between text-xs mb-0.5">
+                                                    <span style={{ color: "var(--color-text-secondary)" }}>{bli.category}</span>
+                                                    <span className="font-medium" style={{ color: "var(--color-text-muted)" }}>
+                                                        {formatMoney(bli.computed.paidToDate)} / {formatMoney(bli.projectedCost)}
+                                                    </span>
+                                                </div>
+                                                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--color-border)" }}>
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${barColor}`}
+                                                        style={{ width: `${Math.min(pct, 100)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Open Full Detail button */}
+                        <div className="pt-2 border-t" style={{ borderColor: "var(--color-border-light)" }}>
+                            <button
+                                onClick={() => onSelectProject(selectedProjectId)}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                            >
+                                Open Full Detail →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div
                 className="rounded-xl border shadow-sm overflow-hidden"
                 style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
@@ -186,9 +292,12 @@ export default function PortfolioDashboard({
                             {rows.map((row, index) => (
                                 <tr
                                     key={row.id}
-                                    onClick={() => onSelectProject(row.id)}
-                                    className={`cursor-pointer border-b transition-colors hover:bg-blue-50/70 dark:hover:bg-blue-900/20 ${index % 2 === 1 ? "bg-gray-50/70 dark:bg-slate-800/30" : ""
-                                        }`}
+                                    onClick={() => handleRowClick(row.id)}
+                                    className={`cursor-pointer border-b transition-colors hover:bg-blue-50/70 dark:hover:bg-blue-900/20 ${
+                                        selectedProjectId === row.id
+                                            ? "bg-blue-50 dark:bg-blue-900/30"
+                                            : index % 2 === 1 ? "bg-gray-50/70 dark:bg-slate-800/30" : ""
+                                    }`}
                                     style={{ borderColor: "var(--color-border-light)" }}
                                 >
                                     <td className="px-4 py-3 font-medium">{row.name}</td>

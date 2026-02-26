@@ -90,7 +90,7 @@ export const invoicesRouter = router({
     listAll: publicProcedure
         .query(async () => {
             return db.query.invoices.findMany({
-                with: { taskBreakdowns: true },
+                with: { taskBreakdowns: true, contract: true },
                 orderBy: [desc(schema.invoices.dateReceived)],
             });
         }),
@@ -102,7 +102,7 @@ export const invoicesRouter = router({
         .query(async ({ input }) => {
             return db.query.invoices.findMany({
                 where: like(schema.invoices.invoiceNumber, `%${input.query}%`),
-                with: { taskBreakdowns: true },
+                with: { taskBreakdowns: true, contract: true },
                 orderBy: [desc(schema.invoices.dateReceived)],
             });
         }),

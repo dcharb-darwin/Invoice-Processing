@@ -9,6 +9,7 @@ import { formatMoney, formatDate } from "../lib/format.js";
 export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (id: number) => void }) {
     const [query, setQuery] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [expandedId, setExpandedId] = useState<number | null>(null);
 
     const { data: results, isLoading } = trpc.invoices.search.useQuery(
         { query: searchTerm },
@@ -18,6 +19,7 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setSearchTerm(query);
+        setExpandedId(null);
     };
 
     const statusColors: Record<string, string> = {
@@ -69,48 +71,144 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                     <p className="text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
                         {results.length} result{results.length !== 1 ? "s" : ""}
                     </p>
-                    {results.map((inv) => (
-                        <div
-                            key={inv.id}
-                            onClick={() => {
-                                window.location.hash = `/project/${inv.projectId}/invoices`;
-                            }}
-                            className="rounded-xl border shadow-sm p-4 hover:shadow-md cursor-pointer transition-all"
-                            style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                    <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
-                                        {inv.invoiceNumber}
-                                    </span>
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColors[inv.status ?? "Received"]}`}>
-                                        {inv.status}
-                                    </span>
+                    {results.map((inv) => {
+                        const isExpanded = expandedId === inv.id;
+                        return (
+                            <div
+                                key={inv.id}
+                                className={`rounded-xl border shadow-sm transition-all cursor-pointer hover:shadow-md ${isExpanded ? "ring-2 ring-blue-500" : ""}`}
+                                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+                            >
+                                <div
+                                    className="p-4"
+                                    onClick={() => setExpandedId(isExpanded ? null : inv.id)}
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs transition-transform duration-200" style={{ color: "var(--color-text-muted)", display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
+                                                ▶
+                                            </span>
+                                            <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                                {inv.invoiceNumber}
+                                            </span>
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColors[inv.status ?? "Received"]}`}>
+                                                {inv.status}
+                                            </span>
+                                        </div>
+                                        <span className="font-bold">{formatMoney(inv.totalAmount)}</span>
+                                    </div>
+                                    <div className="flex gap-4 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                        <span>{inv.vendor || "Unknown vendor"}</span>
+                                        <span>Received: {formatDate(inv.dateReceived)}</span>
+                                        {inv.grantEligible && (
+                                            <span className="text-emerald-600 dark:text-emerald-400">Grant: {inv.grantCode}</span>
+                                        )}
+                                    </div>
+                                    {!isExpanded && inv.taskBreakdowns && inv.taskBreakdowns.length > 0 && (
+                                        <div className="mt-2 flex gap-2 flex-wrap">
+                                            {inv.taskBreakdowns.map((tb) => (
+                                                <span
+                                                    key={tb.id}
+                                                    className="text-[10px] px-1.5 py-0.5 rounded"
+                                                    style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-text-muted)" }}
+                                                >
+                                                    {tb.taskCode || tb.taskDescription}: {formatMoney(tb.amount)}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="font-bold">{formatMoney(inv.totalAmount)}</span>
-                            </div>
-                            <div className="flex gap-4 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                                <span>{inv.vendor || "Unknown vendor"}</span>
-                                <span>Received: {formatDate(inv.dateReceived)}</span>
-                                {inv.grantEligible && (
-                                    <span className="text-emerald-600 dark:text-emerald-400">Grant: {inv.grantCode}</span>
+
+                                {/* Expanded detail section */}
+                                {isExpanded && (
+                                    <div className="px-4 pb-4 space-y-3">
+                                        {/* Full invoice detail */}
+                                        <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                            <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Invoice Details</p>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                <div>
+                                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Vendor</p>
+                                                    <p className="font-medium">{inv.vendor || "Unknown"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Amount</p>
+                                                    <p className="font-bold">{formatMoney(inv.totalAmount)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Date Received</p>
+                                                    <p className="font-medium">{formatDate(inv.dateReceived)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Date Approved</p>
+                                                    <p className="font-medium">{inv.dateApproved ? formatDate(inv.dateApproved) : "—"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Status</p>
+                                                    <p className="font-medium">{inv.status}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Grant Eligible</p>
+                                                    <p className="font-medium">
+                                                        {inv.grantEligible ? (
+                                                            <span className="text-emerald-600 dark:text-emerald-400">{inv.grantCode || "Yes"}</span>
+                                                        ) : "No"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Contract info */}
+                                        {(inv as any).contract && (
+                                            <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Contract</p>
+                                                <div className="grid grid-cols-3 gap-3 text-sm">
+                                                    <div>
+                                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Vendor</p>
+                                                        <p className="font-medium">{(inv as any).contract.vendor}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Number</p>
+                                                        <p className="font-medium font-mono text-xs">{(inv as any).contract.contractNumber || "—"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Type</p>
+                                                        <p className="font-medium">{(inv as any).contract.type}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Task breakdowns */}
+                                        {inv.taskBreakdowns && inv.taskBreakdowns.length > 0 && (
+                                            <div className="rounded-lg shadow-sm p-3 space-y-1.5" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Task Breakdowns</p>
+                                                {inv.taskBreakdowns.map((tb) => (
+                                                    <div key={tb.id} className="flex justify-between text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                                        <span>
+                                                            {tb.taskCode && <span className="font-mono mr-2" style={{ color: "var(--color-text-muted)" }}>{tb.taskCode}</span>}
+                                                            {tb.taskDescription}
+                                                        </span>
+                                                        <span className="font-medium">{formatMoney(tb.amount)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* View in Project link */}
+                                        <div className="pt-2 border-t" style={{ borderColor: "var(--color-border-light)" }}>
+                                            <a
+                                                href={`#/project/${inv.projectId}/invoices`}
+                                                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                View in Project →
+                                            </a>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                            {inv.taskBreakdowns && inv.taskBreakdowns.length > 0 && (
-                                <div className="mt-2 flex gap-2 flex-wrap">
-                                    {inv.taskBreakdowns.map((tb) => (
-                                        <span
-                                            key={tb.id}
-                                            className="text-[10px] px-1.5 py-0.5 rounded"
-                                            style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-text-muted)" }}
-                                        >
-                                            {tb.taskCode || tb.taskDescription}: {formatMoney(tb.amount)}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

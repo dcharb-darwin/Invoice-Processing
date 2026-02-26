@@ -152,6 +152,7 @@ function App() {
                 )}
                 {route.page === "project" && (
                     <ProjectDetail
+                        key={`${route.id}-${route.tab || "budget"}`}
                         projectId={route.id}
                         initialTab={route.tab}
                         onBack={() => navigate({ page: "projects" })}
