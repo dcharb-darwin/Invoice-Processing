@@ -52,12 +52,12 @@
 - [x] `src/pages/InvoicePipeline.tsx` — invoice pipeline Kanban view
 - [x] `src/pages/GrantPackage.tsx` — grant reimbursement package builder
 
-**Module 6: Containerization (PARTIAL)**
+**Module 6: Containerization (COMPLETE)**
 - [x] `Dockerfile`, `docker-compose.yml`, `.dockerignore`
-- [ ] Docker smoke test
+- [x] Docker smoke test — image builds, servers start, health + API verified
 
 **Module 7: Documentation (COMPLETE)**
-- [x] PRD v1.0.0 — all 7 sections populated from actual implementation (21 traced requirements)
+- [x] PRD v1.1.0 — all 7 sections populated, V2 acceptance criteria checked off
 - [x] Demo instructions + customer review script
 - [x] Agentic setup replication guide
 - [x] Memory bank synced
@@ -68,12 +68,13 @@
 - [x] MVP/Vision view mode toggle
 
 ### What Is Next
-- [ ] Docker smoke test
 - [ ] MVP PRD document with screenshots
 - [ ] Customer demo preparation
+- [ ] Push to remote
 
 ### Blockers
 - None currently
 
 ### Active Module
-Cleanup & governance sync (2026-02-26)
+All modules complete (2026-02-26)
+
