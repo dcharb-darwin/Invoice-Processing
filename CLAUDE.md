@@ -17,7 +17,7 @@ Replaces manual budget-tracking spreadsheets with a standardized app.
 server/
 ├── index.ts              ← Express server, tRPC middleware, port 3001
 ├── trpc.ts               ← tRPC init, superjson transformer
-├── router.ts             ← Root router — 7 sub-routers wired here
+├── router.ts             ← Root router — 8 sub-routers wired here
 ├── db/
 │   ├── schema.ts         ← Drizzle ORM — 8 tables, relations, type unions
 │   ├── index.ts          ← DB connection (better-sqlite3, WAL mode)
@@ -29,6 +29,7 @@ server/
     ├── invoices.ts       ← CRUD + batch task breakdowns + cross-project search
     ├── fundingSources.ts ← CRUD
     ├── gutcheck.ts       ← 3-level alert engine (BLI, project, contract)
+    ├── grants.ts         ← Grant reimbursement package builder
     ├── export.ts         ← Project → .xlsx (4 tabs: Overview, Budget, Contracts, InvoiceLog)
     └── import.ts         ← Eric + Shannon xlsx parsers (813 lines)
 
@@ -38,11 +39,16 @@ src/
 ├── App.tsx               ← Hash routing, header, dark mode toggle
 ├── lib/
 │   ├── trpc.ts           ← tRPC React client
-│   └── format.ts         ← formatMoney(cents), formatDate, formatPercent
+│   ├── format.ts         ← formatMoney(cents), formatDate, formatPercent
+│   └── sourceLabels.ts   ← Source reference resolver (PRD §3.7 drill-and-display)
 └── pages/
-    ├── ProjectsList.tsx  ← Project cards with budget health bars
-    ├── ProjectDetail.tsx ← Tabbed: Budget, Contracts, Invoices, Funding, ROW
-    └── InvoiceSearch.tsx ← Cross-project search by invoice number
+    ├── ProjectsList.tsx       ← Project cards with budget health bars
+    ├── ProjectDetail.tsx      ← Tabbed: Budget, Contracts, Invoices, Funding, ROW
+    ├── InvoiceSearch.tsx      ← Cross-project search by invoice number
+    ├── InvoicePipeline.tsx    ← Kanban-style invoice status pipeline
+    ├── GrantPackage.tsx       ← Grant reimbursement package builder
+    ├── ImportPage.tsx         ← Drag-and-drop xlsx import (Eric/Shannon parsers)
+    └── PortfolioDashboard.tsx ← Cross-project budget health overview
 ```
 
 ## Database Schema (8 tables)
