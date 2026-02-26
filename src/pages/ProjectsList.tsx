@@ -144,12 +144,20 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
 
                                 {/* Sync badge */}
                                 <div className="mb-3">
-                                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${syncBadge(project).className}`}>
-                                        {syncBadge(project).text}
-                                    </span>
-                                    {project.tasklineProjectId && (
-                                        <span className="text-[10px] ml-1" style={{ color: "var(--color-text-muted)" }}>
-                                            TL#{project.tasklineProjectId}
+                                    {project.tasklineProjectId ? (
+                                        <a
+                                            href={`http://localhost:5174/#/project/${project.tasklineProjectId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-[10px] font-medium px-2 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                                            title="Open in TaskLine"
+                                        >
+                                            🔗 TaskLine TL#{project.tasklineProjectId} ↗
+                                        </a>
+                                    ) : (
+                                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${syncBadge(project).className}`}>
+                                            {syncBadge(project).text}
                                         </span>
                                     )}
                                 </div>
@@ -225,9 +233,13 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                             </p>
                                         </div>
                                         {tlp.alreadyLinked ? (
-                                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-md bg-emerald-50 dark:bg-emerald-900/30">
-                                                ✓ Linked
-                                            </span>
+                                            <a
+                                                href={`#/projects`}
+                                                className="text-xs font-medium text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-md bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                                                title="View in Invoice Processing"
+                                            >
+                                                ✓ Linked · View in IPC ↗
+                                            </a>
                                         ) : (
                                             <button
                                                 onClick={() => importMutation.mutate({ tasklineProjectId: tlp.id })}

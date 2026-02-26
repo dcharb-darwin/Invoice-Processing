@@ -161,9 +161,15 @@ export default function ProjectDetail({
                 <div className="flex items-center gap-2">
                     {/* Sync status / Push to TaskLine */}
                     {syncStatus?.linked ? (
-                        <span className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5">
-                            🔗 TaskLine #{syncStatus.tasklineProjectId}
-                        </span>
+                        <a
+                            href={`http://localhost:5174/#/project/${syncStatus.tasklineProjectId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                            title="Open in TaskLine"
+                        >
+                            🔗 TaskLine #{syncStatus.tasklineProjectId} ↗
+                        </a>
                     ) : (
                         <button
                             onClick={() => pushToTaskline.mutate({ projectId })}
