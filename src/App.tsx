@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import ProjectsList from "./pages/ProjectsList.js";
 import ProjectDetail from "./pages/ProjectDetail.js";
 import InvoiceSearch from "./pages/InvoiceSearch.js";
+import ImportPage from "./pages/ImportPage.js";
 
 /**
  * Root app — hash-based routing, TaskLine-matching design.
@@ -11,7 +12,8 @@ import InvoiceSearch from "./pages/InvoiceSearch.js";
 type Route =
     | { page: "projects" }
     | { page: "project"; id: number }
-    | { page: "search" };
+    | { page: "search" }
+    | { page: "import" };
 
 function parseHash(): Route {
     const hash = window.location.hash.slice(1);
@@ -20,6 +22,7 @@ function parseHash(): Route {
         if (!isNaN(id)) return { page: "project", id };
     }
     if (hash === "/search") return { page: "search" };
+    if (hash === "/import") return { page: "import" };
     return { page: "projects" };
 }
 
@@ -49,12 +52,14 @@ function App() {
         if (r.page === "projects") window.location.hash = "/";
         else if (r.page === "project") window.location.hash = `/project/${r.id}`;
         else if (r.page === "search") window.location.hash = "/search";
+        else if (r.page === "import") window.location.hash = "/import";
         setRoute(r);
     };
 
     const navItems = [
-        { label: "Projects", icon: "🏗️", key: "projects" },
-        { label: "Invoice Search", icon: "🔍", key: "search" },
+        { label: "Projects", icon: "🏗️", route: { page: "projects" } as Route },
+        { label: "Import", icon: "📥", route: { page: "import" } as Route },
+        { label: "Invoice Search", icon: "🔍", route: { page: "search" } as Route },
     ];
 
     return (
@@ -86,13 +91,13 @@ function App() {
                     <nav className="flex items-center gap-1">
                         {navItems.map((item) => (
                             <button
-                                key={item.key}
-                                onClick={() => navigate({ page: item.key } as Route)}
-                                className={`px-3.5 py-1.5 text-sm rounded-lg font-medium transition-colors ${route.page === item.key
+                                key={item.route.page}
+                                onClick={() => navigate(item.route)}
+                                className={`px-3.5 py-1.5 text-sm rounded-lg font-medium transition-colors ${route.page === item.route.page
                                         ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                                         : "hover:bg-gray-100 dark:hover:bg-slate-800"
                                     }`}
-                                style={{ color: route.page === item.key ? undefined : "var(--color-text-secondary)" }}
+                                style={{ color: route.page === item.route.page ? undefined : "var(--color-text-secondary)" }}
                             >
                                 {item.icon} {item.label}
                             </button>
@@ -133,6 +138,9 @@ function App() {
                 )}
                 {route.page === "search" && (
                     <InvoiceSearch onSelectProject={(id) => navigate({ page: "project", id })} />
+                )}
+                {route.page === "import" && (
+                    <ImportPage />
                 )}
             </main>
         </div>

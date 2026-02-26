@@ -4,7 +4,7 @@
 
 ---
 
-## Last Updated: 2026-02-25T18:42
+## Last Updated: 2026-02-25T23:00
 
 ### What Is Built
 
@@ -27,7 +27,7 @@
 - [x] `server/routers/fundingSources.ts` — CRUD
 - [x] `server/routers/gutcheck.ts` — 3-level alert engine (skill: gutcheck-engine)
 - [x] `server/routers/export.ts` — .xlsx export with 4 tabs (built by Claude Code worker)
-- [x] `server/router.ts` — all 6 routers wired
+- [x] `server/router.ts` — all 7 routers wired (projects, contracts, invoices, fundingSources, gutcheck, export, import)
 
 **Module 3: User Interactions (COMPLETE)**
 - [x] `src/lib/trpc.ts` — tRPC client + React Query
@@ -38,28 +38,26 @@
 - [x] `src/pages/InvoiceSearch.tsx` — cross-project invoice search
 - [x] Restyled to match TaskLine light-mode design (dark mode as toggle)
 
-**Module 4: Interoperability (PARTIAL)**
-- [x] Export: `server/routers/export.ts` — project to .xlsx (Claude Code built)
-- [ ] Import: Eric .xlsx parser (skill: xlsx-eric-parser)
-- [ ] Import: Shannon .xlsx parser (skill: xlsx-shannon-parser)
+**Module 4: Interoperability (COMPLETE)**
+- [x] Export: `server/routers/export.ts` — project to .xlsx with 4 tabs
+- [x] Import: `server/routers/import.ts` — Eric .xlsx parser (Overview, Design, CM, Construction, ROW tabs)
+- [x] Import: `server/routers/import.ts` — Shannon .xlsx parser (Budget Worksheet, DEa tab, simple/detailed)
 
 **Module 5: Containerization (PARTIAL)**
 - [x] `Dockerfile`, `docker-compose.yml`, `.dockerignore` (Codex built)
 - [ ] Docker smoke test
 
-**Module 6: Documentation (STALE — needs update)**
-- [ ] PRD does not reflect Modules 2-4 implementation
-- [ ] Memory bank was stale (fixing now)
+**Module 6: Documentation (COMPLETE)**
+- [x] PRD v1.0.0 — all 7 sections populated from actual implementation (21 traced requirements)
+- [x] Memory bank current-state updated
 
 ### What Is Next
 - [ ] Run anti-drift audit (overdue by governance rules)
-- [ ] Update PRD for Modules 2-4
 - [ ] Docker smoke test
-- [ ] Dispatch import parsers to workers
 - [ ] Git commit with [trace:] tags
 
 ### Blockers
 - None currently
 
 ### Active Module
-Module 4: Interoperability (import parsers)
+Module 6: Documentation (complete — ready for V1 demo)

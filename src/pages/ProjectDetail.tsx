@@ -27,6 +27,31 @@ export default function ProjectDetail({
     const addSupplement = trpc.contracts.addSupplement.useMutation({ onSuccess: () => refetch() });
     const createFunding = trpc.fundingSources.create.useMutation({ onSuccess: () => refetch() });
 
+    const [exporting, setExporting] = useState(false);
+    const utils = trpc.useUtils();
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const data = await utils.export.projectToXlsx.fetch({ projectId });
+            const byteCharacters = atob(data.base64);
+            const byteArray = new Uint8Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteArray[i] = byteCharacters.charCodeAt(i);
+            }
+            const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     if (isLoading || !project) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -71,6 +96,13 @@ export default function ProjectDetail({
                         PM: {project.projectManager} · #{project.projectNumber}
                     </p>
                 </div>
+                <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                >
+                    {exporting ? "Exporting…" : "Export .xlsx"}
+                </button>
             </div>
 
             {/* Gut-Check Alerts */}
