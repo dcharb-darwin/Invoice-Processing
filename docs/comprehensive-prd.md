@@ -56,7 +56,9 @@ All monetary values are stored as **integers in cents** to avoid floating-point 
 | `status` | text | Default: "Active" |
 | `projectManager` | text | Assigned PM name |
 | `councilAuthDate` | text | Council authorization date (manually entered) [trace: `00-discovery-extraction.md` L112] |
-| `tasklineProjectId` | integer | Future: links to TaskLine gen2 project for API sync |
+| `tasklineProjectId` | integer | Links to TaskLine gen2 project for bidirectional sync [trace: `01-development-plan.md` L87, `02-taskline-gen2-suggestions.md`] |
+| `syncDirection` | text | Sync origin: `taskline_to_ipc` \| `ipc_to_taskline` \| null |
+| `lastSyncedAt` | text | ISO timestamp of last successful sync |
 | `createdAt` | text | ISO timestamp, auto-set |
 | `updatedAt` | text | ISO timestamp, auto-set |
 
@@ -654,7 +656,8 @@ From `01-development-plan.md` — checked off based on implementation state.
 - [x] **Grant reimbursement: filter by grant, select invoices, export package**
   `GrantPackage.tsx` — Select project and grant code, builds printable reimbursement package showing eligible invoices with source document links. Displays cover sheet with project metadata + itemized invoice table. [trace: `00-discovery-extraction.md` L41-47]
 
-- [ ] TaskLine integration: projects readable, budget synced, milestones update scope %
+- [x] **TaskLine integration: bidirectional project sync with cross-linking**
+  `tasklineSync` router — Two sync flows: (1) Import from TaskLine modal with simulated capital projects, (2) Push to TaskLine from project detail. Sync badges on project cards (🔗 linked / ⚡ local) with clickable deep links to TaskLine project view. `syncDirection` and `lastSyncedAt` fields track sync state. Simulated API stub swappable for real HTTP calls. [trace: `02-taskline-gen2-suggestions.md`, `01-development-plan.md` L245-249]
 - [ ] Finance view placeholder exists with explanation of future capability
 
 ---
@@ -738,7 +741,7 @@ From `01-development-plan.md` — checked off based on implementation state.
 - No automated testing suite
 - Eric import parser does not deduplicate on re-import (Shannon's does via invoice number merge key)
 - Invoice pipeline is view-only (no drag-and-drop status changes)
-- No TaskLine API integration (V2)
+- TaskLine sync uses simulated API stub (3 sample projects) — swap for real HTTP calls when TaskLine gen2 is deployed
 - No Finance delta view (V2)
 
 ---
