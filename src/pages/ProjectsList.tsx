@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney } from "../lib/format.js";
+import NewProjectModal from "./NewProjectModal.js";
 
 const SYNC_BADGE = {
     linked: { text: "🔗 TaskLine", className: "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30" },
@@ -14,6 +15,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
     const { data: projects, isLoading, error } = trpc.projects.list.useQuery();
     const [exportingId, setExportingId] = useState<number | null>(null);
     const [showTasklineModal, setShowTasklineModal] = useState(false);
+    const [showNewProjectModal, setShowNewProjectModal] = useState(false);
     const utils = trpc.useUtils();
 
     const { data: tasklineProjects } = trpc.sync.listTasklineProjects.useQuery(
@@ -79,12 +81,20 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                         {projects?.length || 0} active projects · Budget tracking from seeded data
                     </p>
                 </div>
-                <button
-                    onClick={() => setShowTasklineModal(true)}
-                    className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2"
-                >
-                    🔄 Import from TaskLine
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowNewProjectModal(true)}
+                        className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
+                    >
+                        + New Project
+                    </button>
+                    <button
+                        onClick={() => setShowTasklineModal(true)}
+                        className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2"
+                    >
+                        🔄 Import from TaskLine
+                    </button>
+                </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -256,6 +266,15 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                     </div>
                 </div>
             )}
+
+            <NewProjectModal
+                open={showNewProjectModal}
+                onClose={() => setShowNewProjectModal(false)}
+                onCreated={(projectId) => {
+                    utils.projects.list.invalidate();
+                    onSelectProject(projectId);
+                }}
+            />
         </div>
     );
 }

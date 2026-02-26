@@ -141,6 +141,16 @@ export const rowParcels = sqliteTable("row_parcels", {
     amount: integer("amount").notNull().default(0), // cents
 });
 
+// [trace: 875 Standard — project phases with checklist items]
+export const projectPhases = sqliteTable("project_phases", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    projectId: integer("project_id").notNull().references(() => projects.id),
+    name: text("name").notNull(), // Initiation, Planning, Execution, Monitoring/Control, Closure
+    order: integer("order").notNull().default(0),
+    status: text("status").default("Not Started"), // Not Started | In Progress | Complete
+    checklist: text("checklist"), // JSON array: [{item: string, done: boolean}]
+});
+
 // ============================================================
 // RELATIONS
 // ============================================================
@@ -151,6 +161,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
     budgetLineItems: many(budgetLineItems),
     invoices: many(invoices),
     rowParcels: many(rowParcels),
+    phases: many(projectPhases),
 }));
 
 export const contractsRelations = relations(contracts, ({ one, many }) => ({
@@ -188,4 +199,8 @@ export const invoiceTaskBreakdownRelations = relations(invoiceTaskBreakdown, ({ 
 
 export const rowParcelsRelations = relations(rowParcels, ({ one }) => ({
     project: one(projects, { fields: [rowParcels.projectId], references: [projects.id] }),
+}));
+
+export const projectPhasesRelations = relations(projectPhases, ({ one }) => ({
+    project: one(projects, { fields: [projectPhases.projectId], references: [projects.id] }),
 }));

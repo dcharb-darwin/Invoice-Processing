@@ -15,6 +15,13 @@
       "when": 1772143654936,
       "tag": "0001_dashing_skaar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772144489292,
+      "tag": "0002_cuddly_shotgun",
+      "breakpoints": true
     }
   ]
 }

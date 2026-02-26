@@ -37,6 +37,7 @@ export const projectsRouter = router({
                     budgetLineItems: true,
                     invoices: { with: { taskBreakdowns: true } },
                     rowParcels: true,
+                    phases: true,
                 },
             });
 
