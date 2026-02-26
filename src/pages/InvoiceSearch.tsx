@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate } from "../lib/format.js";
+import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
 
 /**
  * Invoice search — matches TaskLine light-mode design.
@@ -181,7 +182,7 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                                         <p className="font-medium flex items-center gap-1.5">
                                                             {(inv as any).contract.type}
                                                             {(inv as any).contract.signedDocumentLink && (
-                                                                <a href={(inv as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Contract</a>
+                                                                <a href={(inv as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className={`text-xs ${contractLabel((inv as any).contract.signedDocumentLink).className}`} onClick={(e) => e.stopPropagation()}>{contractLabel((inv as any).contract.signedDocumentLink).text}</a>
                                                             )}
                                                         </p>
                                                     </div>
@@ -195,11 +196,11 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                                 <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Documents</p>
                                                 <div className="flex items-center gap-1.5">
                                                     {inv.sourcePdfPath && (
-                                                        <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Source</a>
+                                                        <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${sourceLabel(inv.sourcePdfPath).className}`} onClick={(e) => e.stopPropagation()}>{sourceLabel(inv.sourcePdfPath).text}</a>
                                                     )}
                                                     {inv.sourcePdfPath && inv.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
                                                     {inv.signedPdfPath && (
-                                                        <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>✅ Signed</a>
+                                                        <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${signedLabel(inv.signedPdfPath).className}`} onClick={(e) => e.stopPropagation()}>{signedLabel(inv.signedPdfPath).text}</a>
                                                     )}
                                                 </div>
                                             </div>

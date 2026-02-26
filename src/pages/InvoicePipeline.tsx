@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate } from "../lib/format.js";
+import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
 
 const STATUSES = ["Received", "Logged", "Reviewed", "Signed", "Paid"] as const;
 
@@ -73,8 +74,8 @@ export default function InvoicePipeline() {
                                     key={inv.id}
                                     onClick={() => setSelectedInvoiceId(selectedInvoiceId === inv.id ? null : inv.id)}
                                     className={`rounded-lg shadow-sm p-3 text-sm border-l-[3px] cursor-pointer hover:shadow-md transition-all ${status === "Paid"
-                                            ? "border-l-emerald-500"
-                                            : "border-l-blue-600"
+                                        ? "border-l-emerald-500"
+                                        : "border-l-blue-600"
                                         } ${selectedInvoiceId === inv.id ? "ring-2 ring-blue-500" : ""}`}
                                     style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                                 >
@@ -172,7 +173,7 @@ export default function InvoicePipeline() {
                                             {(selectedInvoice as any).contract.signedDocumentLink && (
                                                 <>
                                                     {" · "}
-                                                    <a href={(selectedInvoice as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">📄 Contract</a>
+                                                    <a href={(selectedInvoice as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className={`text-xs ${contractLabel((selectedInvoice as any).contract.signedDocumentLink).className}`}>{contractLabel((selectedInvoice as any).contract.signedDocumentLink).text}</a>
                                                 </>
                                             )}
                                         </p>
@@ -188,11 +189,11 @@ export default function InvoicePipeline() {
                                     <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Documents</p>
                                     <p className="flex items-center gap-1.5">
                                         {selectedInvoice.sourcePdfPath && (
-                                            <a href={selectedInvoice.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">📄 Source</a>
+                                            <a href={selectedInvoice.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${sourceLabel(selectedInvoice.sourcePdfPath).className}`}>{sourceLabel(selectedInvoice.sourcePdfPath).text}</a>
                                         )}
                                         {selectedInvoice.sourcePdfPath && selectedInvoice.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
                                         {selectedInvoice.signedPdfPath && (
-                                            <a href={selectedInvoice.signedPdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">✅ Signed</a>
+                                            <a href={selectedInvoice.signedPdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${signedLabel(selectedInvoice.signedPdfPath).className}`}>{signedLabel(selectedInvoice.signedPdfPath).text}</a>
                                         )}
                                     </p>
                                 </div>

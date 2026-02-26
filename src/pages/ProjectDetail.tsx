@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate, formatPercent } from "../lib/format.js";
+import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
 
 /**
  * Project detail page — tabbed view with budget, contracts, invoices, funding, ROW.
@@ -343,7 +344,7 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                                             {contract.signedDocumentLink && (
                                                 <>
                                                     {" · "}
-                                                    <a href={contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Contract</a>
+                                                    <a href={contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className={`text-xs ${contractLabel(contract.signedDocumentLink).className}`} onClick={(e) => e.stopPropagation()}>{contractLabel(contract.signedDocumentLink).text}</a>
                                                 </>
                                             )}
                                         </p>
@@ -410,7 +411,7 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                                                         >{inv.invoiceNumber}</a>
                                                         <StatusBadge status={inv.status} />
                                                         {inv.sourcePdfPath && (
-                                                            <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Source</a>
+                                                            <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-[10px] ${sourceLabel(inv.sourcePdfPath).className}`} onClick={(e) => e.stopPropagation()}>{sourceLabel(inv.sourcePdfPath).text}</a>
                                                         )}
                                                     </div>
                                                     <span className="font-medium">{formatMoney(inv.totalAmount)}</span>
@@ -472,11 +473,11 @@ function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice }: {
                                         {(inv.sourcePdfPath || inv.signedPdfPath) && (
                                             <span className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                                                 {inv.sourcePdfPath && (
-                                                    <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">📄 Source</a>
+                                                    <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${sourceLabel(inv.sourcePdfPath).className}`}>{sourceLabel(inv.sourcePdfPath).text}</a>
                                                 )}
                                                 {inv.sourcePdfPath && inv.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
                                                 {inv.signedPdfPath && (
-                                                    <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">✅ Signed</a>
+                                                    <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${signedLabel(inv.signedPdfPath).className}`}>{signedLabel(inv.signedPdfPath).text}</a>
                                                 )}
                                             </span>
                                         )}

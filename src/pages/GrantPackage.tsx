@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate } from "../lib/format.js";
+import { sourceLabel, contractLabel } from "../lib/sourceLabels.js";
 
 /**
  * Grant reimbursement package builder — TaskLine-matching design.
@@ -153,7 +154,7 @@ export default function GrantPackage() {
                                                 {inv.number}
                                             </span>
                                             {inv.sourcePdfPath && (
-                                                <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Source</a>
+                                                <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${sourceLabel(inv.sourcePdfPath).className}`} onClick={(e) => e.stopPropagation()}>{sourceLabel(inv.sourcePdfPath).text}</a>
                                             )}
                                             <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
                                                 {inv.vendor || "Unknown vendor"}
@@ -249,7 +250,7 @@ export default function GrantPackage() {
                                                         <p className="font-medium flex items-center gap-1.5">
                                                             {(inv as any).contract.type}
                                                             {(inv as any).contract.signedDocumentLink && (
-                                                                <a href={(inv as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 hover:underline" onClick={(e) => e.stopPropagation()}>📄 Contract</a>
+                                                                <a href={(inv as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className={`text-xs ${contractLabel((inv as any).contract.signedDocumentLink).className}`} onClick={(e) => e.stopPropagation()}>{contractLabel((inv as any).contract.signedDocumentLink).text}</a>
                                                             )}
                                                         </p>
                                                     </div>
