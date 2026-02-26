@@ -5,6 +5,7 @@ import ProjectDetail from "./pages/ProjectDetail.js";
 import InvoiceSearch from "./pages/InvoiceSearch.js";
 import ImportPage from "./pages/ImportPage.js";
 import InvoicePipeline from "./pages/InvoicePipeline.js";
+import GrantPackage from "./pages/GrantPackage.js";
 
 /**
  * Root app — hash-based routing, TaskLine-matching design.
@@ -17,7 +18,8 @@ type Route =
     | { page: "project"; id: number }
     | { page: "search" }
     | { page: "import" }
-    | { page: "pipeline" };
+    | { page: "pipeline" }
+    | { page: "grants" };
 
 function parseHash(): Route {
     const hash = window.location.hash.slice(1);
@@ -29,6 +31,7 @@ function parseHash(): Route {
     if (hash === "/search") return { page: "search" };
     if (hash === "/import") return { page: "import" };
     if (hash === "/pipeline") return { page: "pipeline" };
+    if (hash === "/grants") return { page: "grants" };
     return { page: "projects" };
 }
 
@@ -61,6 +64,7 @@ function App() {
         else if (r.page === "search") window.location.hash = "/search";
         else if (r.page === "import") window.location.hash = "/import";
         else if (r.page === "pipeline") window.location.hash = "/pipeline";
+        else if (r.page === "grants") window.location.hash = "/grants";
         setRoute(r);
     };
 
@@ -70,6 +74,7 @@ function App() {
         { label: "Import", icon: "📥", route: { page: "import" } as Route },
         { label: "Invoice Search", icon: "🔍", route: { page: "search" } as Route },
         { label: "Pipeline", icon: "📋", route: { page: "pipeline" } as Route },
+        { label: "Grants", icon: "💰", route: { page: "grants" } as Route },
     ];
 
     return (
@@ -157,6 +162,9 @@ function App() {
                 )}
                 {route.page === "pipeline" && (
                     <InvoicePipeline />
+                )}
+                {route.page === "grants" && (
+                    <GrantPackage />
                 )}
             </main>
         </div>
