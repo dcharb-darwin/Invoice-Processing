@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate, formatPercent } from "../lib/format.js";
 import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
+import InvoiceDetailPanel from "./InvoiceDetailPanel.js";
 
 /**
  * Project detail page — tabbed view with budget, contracts, invoices, funding, ROW.
@@ -44,6 +45,13 @@ export default function ProjectDetail({
     const [flashBliId, setFlashBliId] = useState<number | null>(null);
     const budgetTableRef = useRef<HTMLDivElement>(null);
 
+    // Drill-through navigation state
+    type Breadcrumb = { tab: Tab; label: string; filter?: { category?: string; contractId?: number } };
+    const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
+    const [invoiceFilter, setInvoiceFilter] = useState<{ category?: string; contractId?: number } | null>(null);
+    const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+    const [highlightContractId, setHighlightContractId] = useState<number | null>(null);
+
     // Also sync if hash changes while mounted (e.g. user clicks pipeline card while already on detail)
     useEffect(() => {
         const onHashChange = () => {
@@ -73,8 +81,58 @@ export default function ProjectDetail({
         setTimeout(() => budgetTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     }, []);
 
-    const handleBudgetRowClick = useCallback(() => {
+    const handleBudgetRowClick = useCallback((category?: string) => {
+        if (category) {
+            // Drill through: Budget → Invoices filtered by this category
+            setBreadcrumbs([{ tab: "budget", label: "Budget Summary" }]);
+            setInvoiceFilter({ category });
+            setActiveTab("invoices");
+        } else {
+            setActiveTab("contracts");
+        }
+    }, []);
+
+    const handleNavigateToContract = useCallback((contractId: number) => {
+        setBreadcrumbs(prev => [...prev, { tab: activeTab, label: activeTab === "invoices" ? "Invoices" : "Current" }]);
+        setHighlightContractId(contractId);
+        setSelectedInvoice(null);
         setActiveTab("contracts");
+        setTimeout(() => setHighlightContractId(null), 2000);
+    }, [activeTab]);
+
+    const handleNavigateToInvoices = useCallback((contractId: number) => {
+        setBreadcrumbs(prev => [...prev, { tab: "contracts", label: "Contracts" }]);
+        setInvoiceFilter({ contractId });
+        setActiveTab("invoices");
+    }, []);
+
+    const handleNavigateToBudget = useCallback((category: string) => {
+        setSelectedInvoice(null);
+        setBreadcrumbs(prev => [...prev, { tab: activeTab, label: activeTab === "invoices" ? "Invoices" : "Current" }]);
+        setActiveTab("budget");
+        // Flash the matching budget row
+        const bli = project?.budgetLineItems?.find((b: any) => b.category === category);
+        if (bli) {
+            setFlashBliId(bli.id);
+            setTimeout(() => setFlashBliId(null), 1500);
+            setTimeout(() => budgetTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+        }
+    }, [activeTab, project]);
+
+    const handleBreadcrumbBack = useCallback(() => {
+        const prev = breadcrumbs[breadcrumbs.length - 1];
+        if (prev) {
+            setBreadcrumbs(breadcrumbs.slice(0, -1));
+            setInvoiceFilter(prev.filter || null);
+            setSelectedInvoice(null);
+            setActiveTab(prev.tab);
+        }
+    }, [breadcrumbs]);
+
+    const clearDrillThrough = useCallback(() => {
+        setBreadcrumbs([]);
+        setInvoiceFilter(null);
+        setSelectedInvoice(null);
     }, []);
 
     const [exporting, setExporting] = useState(false);
@@ -231,11 +289,11 @@ export default function ProjectDetail({
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 mb-6 border-b overflow-x-auto" style={{ borderColor: "var(--color-border)" }}>
+            <div className="flex gap-1 mb-2 border-b overflow-x-auto" style={{ borderColor: "var(--color-border)" }}>
                 {tabs.map((tab) => (
                     <button
                         key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
+                        onClick={() => { clearDrillThrough(); setActiveTab(tab.key); }}
                         className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.key
                             ? "border-blue-600 text-blue-700 dark:text-blue-300"
                             : "border-transparent hover:text-blue-600"
@@ -250,20 +308,51 @@ export default function ProjectDetail({
                 ))}
             </div>
 
+            {/* Breadcrumb trail */}
+            {breadcrumbs.length > 0 && (
+                <div className="flex items-center gap-2 mb-4 px-1 text-sm">
+                    <button
+                        onClick={handleBreadcrumbBack}
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium flex items-center gap-1"
+                    >
+                        ← {breadcrumbs[breadcrumbs.length - 1].label}
+                    </button>
+                    <span className="text-gray-400">/</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                        {invoiceFilter?.category && `${invoiceFilter.category} Invoices`}
+                        {invoiceFilter?.contractId && `Contract #${invoiceFilter.contractId} Invoices`}
+                        {!invoiceFilter && (activeTab === "contracts" ? "Contracts" : activeTab === "budget" ? "Budget" : "")}
+                    </span>
+                </div>
+            )}
+
             {/* Tab Content */}
             {activeTab === "budget" && <BudgetTab project={project} alerts={alerts || []} budgetTableRef={budgetTableRef} flashBliId={flashBliId} onRowClick={handleBudgetRowClick} />}
-            {activeTab === "contracts" && <ContractsTab project={project} onAddSupplement={addSupplement.mutate} />}
+            {activeTab === "contracts" && <ContractsTab project={project} onAddSupplement={addSupplement.mutate} onNavigateToInvoices={handleNavigateToInvoices} highlightContractId={highlightContractId} onSelectInvoice={setSelectedInvoice} />}
             {activeTab === "invoices" && (
                 <InvoicesTab
                     project={project}
                     showForm={showInvoiceForm}
                     onToggleForm={() => setShowInvoiceForm(!showInvoiceForm)}
                     onCreateInvoice={createInvoice.mutate}
+                    filter={invoiceFilter}
+                    onSelectInvoice={setSelectedInvoice}
                 />
             )}
             {activeTab === "funding" && <FundingTab project={project} onCreateFunding={createFunding.mutate} />}
             {activeTab === "parcels" && <ParcelsTab project={project} />}
             {activeTab === "phases" && <PhasesTab project={project} onUpdate={() => refetch()} />}
+
+            {/* Invoice Detail Panel — drill-through overlay */}
+            {selectedInvoice && (
+                <InvoiceDetailPanel
+                    invoice={selectedInvoice}
+                    project={project}
+                    onClose={() => setSelectedInvoice(null)}
+                    onNavigateToContract={handleNavigateToContract}
+                    onNavigateToBudget={handleNavigateToBudget}
+                />
+            )}
         </div>
     );
 }
@@ -286,7 +375,7 @@ function SummaryCard({ label, value, accent = "default" }: { label: string; valu
 }
 
 function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: {
-    project: any; alerts: any[]; budgetTableRef: React.RefObject<HTMLDivElement | null>; flashBliId: number | null; onRowClick: () => void;
+    project: any; alerts: any[]; budgetTableRef: React.RefObject<HTMLDivElement | null>; flashBliId: number | null; onRowClick: (category?: string) => void;
 }) {
     return (
         <div
@@ -317,7 +406,7 @@ function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: 
                         return (
                             <tr
                                 key={bli.id}
-                                onClick={onRowClick}
+                                onClick={() => onRowClick(bli.category)}
                                 className={`border-b cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300 ${isFlashing ? "animate-flash-yellow" : ""}`}
                                 style={{ borderColor: "var(--color-border-light)" }}
                             >
@@ -333,7 +422,7 @@ function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: 
                                 <td className="px-4 py-3 text-center">
                                     <span className={`inline-block w-3 h-3 rounded-full ${healthColor}`} title={alert?.message || "On track"} />
                                 </td>
-                                <td className="px-4 py-3 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>→</td>
+                                <td className="px-4 py-3 text-center text-xs text-indigo-500" title="View invoices for this category">→</td>
                             </tr>
                         );
                     })}
@@ -359,7 +448,7 @@ function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: 
     );
 }
 
-function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplement: any }) {
+function ContractsTab({ project, onAddSupplement, onNavigateToInvoices, highlightContractId, onSelectInvoice }: { project: any; onAddSupplement: any; onNavigateToInvoices?: (contractId: number) => void; highlightContractId?: number | null; onSelectInvoice?: (inv: any) => void }) {
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
     return (
@@ -374,7 +463,7 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                 return (
                     <div
                         key={contract.id}
-                        className="rounded-xl border shadow-sm cursor-pointer hover:shadow-md transition-all"
+                        className={`rounded-xl border shadow-sm cursor-pointer hover:shadow-md transition-all ${highlightContractId === contract.id ? "ring-2 ring-indigo-400 animate-flash-yellow" : ""}`}
                         style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                         onClick={() => setExpandedId(isExpanded ? null : contract.id)}
                     >
@@ -397,12 +486,23 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                                         </p>
                                     </div>
                                 </div>
-                                <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${invoiceTotal > cumulativeTotal
-                                    ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-                                    : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                                    }`}>
-                                    {invoiceTotal > cumulativeTotal ? "Over" : "On Track"}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    {contractInvoices.length > 0 && onNavigateToInvoices && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onNavigateToInvoices(contract.id); }}
+                                            className="text-xs font-medium px-2 py-1 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                                            title="View invoices for this contract"
+                                        >
+                                            {contractInvoices.length} invoice{contractInvoices.length !== 1 ? "s" : ""} →
+                                        </button>
+                                    )}
+                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${invoiceTotal > cumulativeTotal
+                                        ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                                        : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                        }`}>
+                                        {invoiceTotal > cumulativeTotal ? "Over" : "On Track"}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-4 text-sm">
@@ -449,16 +549,13 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
                                         <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Invoices ({contractInvoices.length})</p>
                                         <div className="space-y-1.5">
                                             {contractInvoices.map((inv: any) => (
-                                                <div key={inv.id} className="flex items-center justify-between text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                                                <div key={inv.id} className="flex items-center justify-between text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg px-2 py-1 -mx-2 transition-colors" style={{ color: "var(--color-text-secondary)" }}
+                                                    onClick={(e) => { e.stopPropagation(); onSelectInvoice?.(inv); }}>
                                                     <div className="flex items-center gap-2">
-                                                        <a
-                                                            href={`#/project/${project.id}/invoices`}
-                                                            className="font-mono text-xs text-blue-700 dark:text-blue-300 hover:underline"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >{inv.invoiceNumber}</a>
+                                                        <span className="font-mono text-xs text-blue-700 dark:text-blue-300">{inv.invoiceNumber}</span>
                                                         <StatusBadge status={inv.status} />
                                                         {inv.sourcePdfPath && (
-                                                            <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-[10px] ${sourceLabel(inv.sourcePdfPath).className}`} onClick={(e) => e.stopPropagation()}>{sourceLabel(inv.sourcePdfPath).text}</a>
+                                                            <span className={`text-[10px] ${sourceLabel(inv.sourcePdfPath).className}`}>{sourceLabel(inv.sourcePdfPath).text}</span>
                                                         )}
                                                     </div>
                                                     <span className="font-medium">{formatMoney(inv.totalAmount)}</span>
@@ -480,15 +577,34 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
     );
 }
 
-function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice }: {
+function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice, filter, onSelectInvoice }: {
     project: any; showForm: boolean; onToggleForm: () => void; onCreateInvoice: any;
+    filter?: { category?: string; contractId?: number } | null;
+    onSelectInvoice?: (inv: any) => void;
 }) {
     const [expandedId, setExpandedId] = useState<number | null>(null);
+
+    // Apply filter if present
+    let filteredInvoices = project.invoices;
+    if (filter?.category) {
+        filteredInvoices = project.invoices.filter((inv: any) =>
+            inv.taskBreakdowns?.some((tb: any) => {
+                const bli = project.budgetLineItems?.find((b: any) => b.id === tb.budgetLineItemId);
+                return bli?.category === filter.category;
+            })
+        );
+    } else if (filter?.contractId) {
+        filteredInvoices = project.invoices.filter((inv: any) => inv.contractId === filter.contractId);
+    }
 
     return (
         <div>
             <div className="flex items-center justify-between mb-4">
-                <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{project.invoices.length} invoices</p>
+                <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                    {filteredInvoices.length}{filter ? " matching" : ""} invoice{filteredInvoices.length !== 1 ? "s" : ""}
+                    {filter?.category && <span className="ml-1 text-indigo-600 font-medium">· {filter.category}</span>}
+                    {filter?.contractId && <span className="ml-1 text-indigo-600 font-medium">· Contract #{filter.contractId}</span>}
+                </p>
                 <button
                     onClick={onToggleForm}
                     className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
@@ -500,15 +616,15 @@ function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice }: {
             {showForm && <InvoiceForm project={project} onSubmit={onCreateInvoice} />}
 
             <div className="space-y-3">
-                {project.invoices.map((inv: any) => {
+                {filteredInvoices.map((inv: any) => {
                     const isExpanded = expandedId === inv.id;
                     const hasBreakdowns = inv.taskBreakdowns?.length > 0;
                     return (
                         <div
                             key={inv.id}
-                            className={`rounded-xl border shadow-sm transition-all ${hasBreakdowns ? "cursor-pointer hover:shadow-md" : ""}`}
+                            className={`rounded-xl border shadow-sm transition-all cursor-pointer hover:shadow-md`}
                             style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
-                            onClick={() => hasBreakdowns && setExpandedId(isExpanded ? null : inv.id)}
+                            onClick={() => onSelectInvoice ? onSelectInvoice(inv) : (hasBreakdowns && setExpandedId(isExpanded ? null : inv.id))}
                         >
                             <div className="p-4">
                                 <div className="flex items-center justify-between mb-2">
