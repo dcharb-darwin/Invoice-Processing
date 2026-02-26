@@ -1,8 +1,8 @@
 # Invoice Processing Coordinator — Comprehensive PRD
 
-> **Version:** 1.0.0
-> **Status:** V1 COMPLETE — Modules 1-4 implemented
-> **Last Updated:** 2026-02-25
+> **Version:** 1.1.0
+> **Status:** V1 + V2 COMPLETE — Modules 1-5 implemented
+> **Last Updated:** 2026-02-26
 > **Primary Deliverable** — This document IS the product. The prototype code is disposable.
 
 ---
@@ -643,11 +643,17 @@ From `01-development-plan.md` — checked off based on implementation state.
 - [x] **Invoice number searchable across all projects**
   `invoices.search` uses LIKE matching. `InvoiceSearch.tsx` provides the UI. [trace: `01-development-plan.md` L220]
 
-### V2 Acceptance Criteria (Not Yet Implemented)
+### V2 Acceptance Criteria
 
-- [ ] Invoice pipeline view shows all invoices across projects with status
-- [ ] Portfolio dashboard shows budget health for every project
-- [ ] Grant reimbursement: filter by grant, select invoices, export package
+- [x] **Invoice pipeline view shows all invoices across projects with status**
+  `InvoicePipeline.tsx` — Kanban-style board with columns for each invoice status (Received → Logged → Reviewed → Signed → Paid). Drag-and-drop not implemented; status updates via click. Shows all invoices across all projects with source document links. [trace: `01-development-plan.md` L222]
+
+- [x] **Portfolio dashboard shows budget health for every project**
+  `PortfolioDashboard.tsx` — Summary metric cards (total projects, total budget, total paid, overall health), sortable table with budget/paid/% spent/% scope/health columns, and health-dot indicators using the same green/amber/red thresholds as the gut-check engine. Click-through to project detail. [trace: `01-development-plan.md` L221]
+
+- [x] **Grant reimbursement: filter by grant, select invoices, export package**
+  `GrantPackage.tsx` — Select project and grant code, builds printable reimbursement package showing eligible invoices with source document links. Displays cover sheet with project metadata + itemized invoice table. [trace: `00-discovery-extraction.md` L41-47]
+
 - [ ] TaskLine integration: projects readable, budget synced, milestones update scope %
 - [ ] Finance view placeholder exists with explanation of future capability
 
@@ -678,10 +684,15 @@ From `01-development-plan.md` — checked off based on implementation state.
 │                   Browser                        │
 │                                                  │
 │  React 19 + Tailwind                             │
-│  ├── App.tsx (hash router, header, dark mode)    │
+│  ├── App.tsx (hash router, header, dark mode,    │
+│  │            MVP/Vision toggle)                 │
 │  ├── ProjectsList.tsx (card grid)                │
 │  ├── ProjectDetail.tsx (5-tab dashboard)         │
-│  └── InvoiceSearch.tsx (cross-project search)    │
+│  ├── InvoiceSearch.tsx (cross-project search)    │
+│  ├── PortfolioDashboard.tsx (V2: health table)   │
+│  ├── InvoicePipeline.tsx (V2: status board)      │
+│  ├── GrantPackage.tsx (V2: reimbursement)        │
+│  └── ImportPage.tsx (spreadsheet upload)         │
 │                                                  │
 │  tRPC React Client ──────────────────────┐       │
 └──────────────────────────────────────────┼───────┘
@@ -699,8 +710,9 @@ From `01-development-plan.md` — checked off based on implementation state.
 │  ├── fundingSources (list, create, update)       │
 │  ├── gutcheck    (forProject)                    │
 │  ├── export      (projectToXlsx)                 │
-│  └── import      (importEricXlsx,                │
-│                    importShannonXlsx)             │
+│  ├── import      (importEricXlsx,                │
+│  │                importShannonXlsx)             │
+│  └── grants      (package support)               │
 │                                                  │
 │  Drizzle ORM ────────────────────────────┐       │
 └──────────────────────────────────────────┼───────┘
@@ -725,8 +737,7 @@ From `01-development-plan.md` — checked off based on implementation state.
 - Not optimized for mobile
 - No automated testing suite
 - Eric import parser does not deduplicate on re-import (Shannon's does via invoice number merge key)
-- No invoice pipeline Kanban view (V2)
-- No grant reimbursement package builder (V2)
+- Invoice pipeline is view-only (no drag-and-drop status changes)
 - No TaskLine API integration (V2)
 - No Finance delta view (V2)
 
@@ -761,6 +772,13 @@ From `01-development-plan.md` — checked off based on implementation state.
 ---
 
 ## PRD Changelog
+
+### v1.1.0 — 2026-02-26
+- **V2 features documented** — PortfolioDashboard, InvoicePipeline, GrantPackage now in acceptance criteria
+- Architecture diagram updated with all 8 pages and 8 routers
+- Prototype limitations trimmed — removed items that are actually built
+- MVP/Vision toggle noted in architecture diagram
+- Version bumped to reflect V2 completion
 
 ### v1.0.0 — 2026-02-25
 - **Complete rewrite** — all 7 sections populated from actual implementation
