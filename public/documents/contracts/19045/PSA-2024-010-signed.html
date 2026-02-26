@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract PSA-2024-010</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; padding: 40px; color: #1e293b; }
+        .page { max-width: 800px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 48px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #1e40af; }
+        .logo { font-size: 24px; font-weight: 700; color: #1e40af; }
+        .logo small { display: block; font-size: 12px; color: #64748b; font-weight: 400; }
+        h1 { font-size: 28px; color: #1e293b; }
+        .badge { display: inline-block; background: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px; margin-left: 8px; }
+        .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .meta-box { background: #f1f5f9; padding: 16px; border-radius: 8px; }
+        .meta-box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        thead th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
+        tbody td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }
+        .amount { text-align: right; font-variant-numeric: tabular-nums; }
+        .total { font-size: 24px; font-weight: 700; color: #1e40af; text-align: right; margin-top: 16px; }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72px; color: rgba(209, 213, 219, 0.3); font-weight: 900; pointer-events: none; }
+        .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center; }
+        .sig { margin-top: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .sig-line { border-top: 1px solid #94a3b8; padding-top: 8px; font-size: 12px; color: #64748b; }
+        @media print { body { padding: 0; background: white; } .page { border: none; box-shadow: none; } .watermark { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="watermark">DEMO</div>
+    <div class="page">
+        <div style="position:absolute;top:20px;right:20px;transform:rotate(-15deg);border:3px solid #1e40af;color:#1e40af;padding:8px 16px;font-size:18px;font-weight:bold;border-radius:8px;opacity:0.8;">EXECUTED</div>
+        <div class="header">
+            <div class="logo">
+                City of Lake Stevens
+                <small>Professional Services Agreement</small>
+            </div>
+            <div>
+                <h1>PSA-2024-010</h1>
+            </div>
+        </div>
+        <div class="meta">
+            <div class="meta-box">
+                <h3>Consultant / Contractor</h3>
+                <p style="font-weight:600;">David Evans and Associates</p>
+                <p style="font-size:13px;color:#64748b;margin-top:4px;">Design</p>
+            </div>
+            <div class="meta-box">
+                <h3>Project</h3>
+                <p style="font-weight:600;">36th Street NE Bridge Replacement</p>
+                <p style="font-size:13px;color:#64748b;">CFP #19045</p>
+            </div>
+        </div>
+        <table>
+            <thead><tr><th>Item</th><th>Description</th><th class="amount">Amount</th></tr></thead>
+            <tbody>
+                <tr><td style="padding:8px;">Original Contract</td><td style="padding:8px;">Per scope of work</td><td style="padding:8px;" class="amount">$320,000</td></tr>
+                
+            </tbody>
+        </table>
+        <div class="total">Contract Value: $320,000</div>
+        <div class="sig">
+            <div class="sig-line">City Representative</div>
+            <div class="sig-line">Consultant Representative</div>
+        </div>
+        <div class="footer">
+            This is a demo document for the Invoice Processing Coordinator MVP.<br>
+            In production, this would be the signed contract PDF stored in SharePoint.
+        </div>
+    </div>
+</body>
+</html>

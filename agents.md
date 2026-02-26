@@ -89,13 +89,14 @@ All three agents share the same `agents/memory-bank/` and `.agent/skills/` for c
 ## 4. RAPID POC INVARIANTS (enforced)
 
 - Build for demo-readiness in hours/days.
-- Seed with real Eric 18013 + Shannon 36th St Bridge data immediately.
+- Seed with real data immediately — examples provided are for modeling patterns, not hardcoding specifics.
 - Semi-functional = clickable flows, computed gut-checks, import/export working.
 - Prototype code is disposable; PRD is permanent.
 - Never spend more than 30 minutes on a single component before showing progress.
 - If blocked, skip and return — demo momentum is everything.
+- **Design-Pattern-First Thinking:** This app is a foundational micro-app that demonstrates patterns. Specific examples (Eric's 18013, Shannon's Bridge) are inputs we model from — they are NOT the product. Always design features as general-purpose patterns that work for ANY project, ANY vendor, ANY PM. Never hardcode for a specific person or dataset. When building, ask: "Does this work for a project we haven't seen yet?" If no, rethink.
 - **In-Context Drilldown Principle:** If we show data anywhere, clicking it must reveal source detail in-context (inline expand, not just navigate away). Every rendered element is a potential drilldown target.
-- **Pluggable Document Storage:** Every invoice, contract, and supplement links to its original source material (PDF, scan, etc.). The URL is a simple string — for Lake Stevens it's SharePoint (`https://lakestevenswa.sharepoint.com/...`); other orgs may use GDrive, OneDrive, Box, or local paths. Schema fields: `sourcePdfPath`/`signedPdfPath` (invoices), `signedDocumentLink` (contracts). Every UI that shows these records must display "📄 View Source" links that open in a new tab.
+- **Source Document Provenance:** Every data element traces back to its original source material. This is a design pattern, not a feature: when data enters the system (import, manual entry, API), the system records WHERE it came from. Schema fields store the link (`sourcePdfPath`/`signedPdfPath` on invoices, `signedDocumentLink` on contracts). The storage backend is pluggable — the URL is just a string per record (local path, SharePoint, GDrive, OneDrive, Box). Every UI that shows these records displays "📄 View Source" links that open in a new tab. For the demo, link to real source PDFs where they exist; use generated mockups only where no real document is available.
 
 ---
 

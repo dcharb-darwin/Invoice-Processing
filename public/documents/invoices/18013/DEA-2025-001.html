@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice DEA-2025-001</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; padding: 40px; color: #1e293b; }
+        .page { max-width: 800px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 48px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #3b82f6; }
+        .logo { font-size: 24px; font-weight: 700; color: #1e40af; }
+        .logo small { display: block; font-size: 12px; color: #64748b; font-weight: 400; }
+        .inv-number { text-align: right; }
+        .inv-number h1 { font-size: 28px; color: #1e293b; }
+        .inv-number p { color: #64748b; font-size: 14px; }
+        .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .meta-box { background: #f1f5f9; padding: 16px; border-radius: 8px; }
+        .meta-box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        thead th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
+        tbody td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }
+        tfoot td { padding: 12px 8px; font-weight: 700; font-size: 16px; border-top: 2px solid #1e293b; }
+        .amount { text-align: right; font-variant-numeric: tabular-nums; }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72px; color: rgba(209, 213, 219, 0.3); font-weight: 900; pointer-events: none; z-index: 0; }
+        .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center; }
+        @media print { body { padding: 0; background: white; } .page { border: none; box-shadow: none; } .watermark { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="watermark">DEMO</div>
+    <div class="page">
+        
+        <div class="header">
+            <div class="logo">
+                City of Lake Stevens
+                <small>Public Works Department</small>
+            </div>
+            <div class="inv-number">
+                <h1>DEA-2025-001</h1>
+                <p>Invoice</p>
+            </div>
+        </div>
+        <div class="meta">
+            <div class="meta-box">
+                <h3>Vendor</h3>
+                <p style="font-weight:600;">David Evans and Associates</p>
+            </div>
+            <div class="meta-box">
+                <h3>Project</h3>
+                <p style="font-weight:600;">Main Street Improvements</p>
+                <p style="font-size:13px;color:#64748b;">CFP #18013</p>
+            </div>
+        </div>
+        <table>
+            <thead><tr><th>Date</th><th>Total Amount</th></tr></thead>
+            <tbody>
+                <tr><td style="padding:8px;">March 14, 2025</td><td style="padding:8px;font-weight:600;">$45,000.00</td></tr>
+                
+            </tbody>
+        </table>
+        <table>
+            <thead><tr><th>Task Code</th><th>Description</th><th class="amount">Amount</th></tr></thead>
+            <tbody>
+                <tr><td style="padding:8px;font-family:monospace;color:#3b82f6;">PM</td><td style="padding:8px;">Project Management</td><td style="padding:8px;" class="amount">$8,000</td></tr>
+                <tr><td style="padding:8px;font-family:monospace;color:#3b82f6;">SURV</td><td style="padding:8px;">Surveying</td><td style="padding:8px;" class="amount">$12,000</td></tr>
+                <tr><td style="padding:8px;font-family:monospace;color:#3b82f6;">DES</td><td style="padding:8px;">Design Development</td><td style="padding:8px;" class="amount">$20,000</td></tr>
+                <tr><td style="padding:8px;font-family:monospace;color:#3b82f6;">PERMIT</td><td style="padding:8px;">Permitting</td><td style="padding:8px;" class="amount">$5,000</td></tr>
+            </tbody>
+            <tfoot><tr><td colspan="2">Total</td><td class="amount">$45,000.00</td></tr></tfoot>
+        </table>
+        <div class="footer">
+            This is a demo document for the Invoice Processing Coordinator MVP.<br>
+            In production, this would be the original PDF stored in SharePoint.
+        </div>
+    </div>
+</body>
+</html>
