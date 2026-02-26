@@ -86,11 +86,40 @@ export const invoicesRouter = router({
             return updated;
         }),
 
+    // General-purpose invoice update (for inline editing in pipeline split-view)
+    update: publicProcedure
+        .input(
+            z.object({
+                id: z.number(),
+                vendor: z.string().optional(),
+                totalAmount: z.number().optional(),
+                dateReceived: z.string().optional(),
+                dateApproved: z.string().optional(),
+                status: z.enum(schema.INVOICE_STATUSES).optional(),
+                grantEligible: z.boolean().optional(),
+                grantCode: z.string().optional(),
+            })
+        )
+        .mutation(async ({ input }) => {
+            const { id, ...data } = input;
+            // Strip undefined fields so we only update what was provided
+            const cleanData = Object.fromEntries(
+                Object.entries(data).filter(([, v]) => v !== undefined)
+            );
+            if (Object.keys(cleanData).length === 0) return null;
+            const [updated] = await db
+                .update(schema.invoices)
+                .set(cleanData)
+                .where(eq(schema.invoices.id, id))
+                .returning();
+            return updated;
+        }),
+
     // List all invoices across all projects (for pipeline view)
     listAll: publicProcedure
         .query(async () => {
             return db.query.invoices.findMany({
-                with: { taskBreakdowns: true, contract: true },
+                with: { taskBreakdowns: true, contract: true, project: true },
                 orderBy: [desc(schema.invoices.dateReceived)],
             });
         }),
