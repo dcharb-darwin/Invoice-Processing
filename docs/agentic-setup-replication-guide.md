@@ -649,3 +649,187 @@ ls -la <expected-output-files>
 4. **Log everything** — redirect all output to `/tmp/<name>.log` for debugging
 5. **Use unique screen names** — `screen -dmS claude-export`, `screen -dmS codex-docker`, etc.
 6. **Clean up** — `screen -S <name> -X quit` after verifying output
+
+---
+
+## Orchestrator Operational Protocol
+
+> This is the most important section. It defines **how the swarm actually runs** day-to-day.
+
+### Role Assignments
+
+| Role | Agent | Responsibilities |
+|------|-------|-----------------|
+| **Orchestrator** | Antigravity (Gemini) | Plan, dispatch, verify, review, governance, PRD |
+| **Backend Worker** | Claude Code | Schema, routers, parsers, complex business logic |
+| **Frontend/DevOps Worker** | Codex CLI | Components, Docker, config, simple CRUD, tooling |
+
+**The Golden Rule:** The orchestrator PLANS and VERIFIES — it does NOT build everything itself.
+When code needs to be written, the orchestrator crafts a detailed prompt and dispatches it to a worker.
+
+### Session Start Checklist
+
+Every session — every time an agent starts — must follow this read order (from `agents.md`):
+
+```
+1. Read agents.md              → understand swarm config, roles, philosophy
+2. Read lessons.md             → what was learned in previous sessions
+3. Read current-state.md       → what is built, what is next, any blockers
+4. Read module-registry.json   → module status, ownership, file lists
+5. Read invariants.md          → rules that must NEVER be violated
+```
+
+This ensures no agent ever "forgets" what happened or tries to rebuild existing work.
+
+### The Build Loop (per module)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 1. PLAN — Orchestrator reads skills, breaks into tasks  │
+│ 2. DISPATCH — Send tasks to workers via screen -dmS     │
+│ 3. MONITOR — screen -ls, tail logs, wait                │
+│ 4. VERIFY — Review output files, check for errors       │
+│ 5. GOVERN — Run governance checklist (see below)        │
+│ 6. COMMIT — git commit with [trace: ...] tags           │
+│ 7. LEARN — Update lessons.md with what was learned      │
+│ 8. LOOP — Move to next module                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Governance Checklist (MANDATORY after every module)
+
+Run this after every module completion, every significant change, or at minimum every 30 minutes:
+
+- [ ] **current-state.md** — Update "What Is Built" and "What Is Next"
+- [ ] **module-registry.json** — Update status, file lists, `completedBy`, `skillsUsed`
+- [ ] **lessons.md** — Append anything learned (append-only, never delete)
+- [ ] **decisions.md** — Record any architectural choices with rationale
+- [ ] **invariants.md** — Verify no rules are violated
+- [ ] **PRD** — Does `docs/comprehensive-prd.md` reflect the implementation?
+- [ ] **git commit** — Conventional format with `[trace: ...]` linking to discovery
+
+### Anti-Drift Triggers
+
+Per `agents/memory-bank/anti-drift-config.json`, an audit should fire:
+
+| Trigger | Value |
+|---------|-------|
+| Time interval | Every 30 minutes |
+| Token threshold | After 5,000 tokens consumed |
+| Tool call threshold | After 10 tool calls |
+| On handoff | Always before handing off between agents |
+| Manual | `/run-anti-drift-audit` command |
+
+The audit checks: memory bank freshness, invariant compliance, PRD accuracy,
+commit traceability, module registry accuracy, and skills library integrity.
+
+---
+
+## Crafting Worker Prompts
+
+The quality of worker output depends entirely on the prompt. Follow this template:
+
+```
+Read <CONTEXT_FILE> first.                              ← CLAUDE.md or codex-instructions.md
+Then read <SKILL_FILE> for the full spec.               ← .agent/skills/<name>/SKILL.md
+Create <OUTPUT_FILE> — a <DESCRIPTION>.                 ← what to build
+
+It should:
+1) <SPECIFIC_REQUIREMENT>                               ← numbered, precise
+2) <SPECIFIC_REQUIREMENT>
+3) <SPECIFIC_REQUIREMENT>
+
+Use the same patterns as <EXISTING_FILE>.               ← point to similar code
+Use await on all drizzle operations.                    ← known pitfalls
+All monetary values in cents.                           ← project conventions
+
+After creating the file, wire it into <INTEGRATION_POINT>.  ← how to connect
+```
+
+### Prompt Anti-Patterns (avoid these)
+
+| ❌ Bad | ✅ Good |
+|--------|---------|
+| "Build an import system" | "Create `server/routers/import.ts` with `importEricXlsx` mutation that takes `{base64: string, projectId?: number}`..." |
+| "Make it look nice" | "Restyle to match TaskLine: white cards (#FFF), slate-50 bg, blue-600 accent, shadow-sm, rounded-xl, Inter font" |
+| "Follow best practices" | "Use await on ALL drizzle operations. Use the same DB query pattern as `server/routers/gutcheck.ts`" |
+| "Add Docker support" | "Create Dockerfile: FROM node:22-slim, WORKDIR /app, COPY package*.json, npm ci, COPY . ., RUN npm run db:migrate && npm run db:seed, EXPOSE 3001 5173, CMD npm run dev" |
+
+### Referencing Skills in Prompts
+
+Always tell workers to read the relevant skill FIRST:
+
+```bash
+# Good — worker reads skill spec before building
+"Read .agent/skills/xlsx-eric-parser/SKILL.md for the full spec. Then create..."
+
+# Bad — worker guesses at the spec
+"Parse Eric's spreadsheet into the database..."
+```
+
+---
+
+## The Learning Cycle
+
+After every session, the memory bank must be updated. This is how agents maintain continuity across sessions — without this, the next session starts from scratch.
+
+```
+Session N completes work
+    ↓
+Update lessons.md          ← What we learned (pitfalls, patterns, fixes)
+Update current-state.md    ← What is built now, what's next
+Update module-registry.json ← Which modules are done, by whom
+Update decisions.md        ← Any new architectural decisions
+    ↓
+Next session reads in order:
+    agents.md → lessons.md → current-state.md → module-registry.json
+    ↓
+Agent has full context, doesn't repeat work, doesn't forget lessons
+```
+
+### What Goes in `lessons.md`
+
+- Library/framework gotchas (e.g. "Drizzle v0.45+ requires await on SQLite ops")
+- Orchestration fixes (e.g. "screen -dmS solves SIGINT in background dispatch")
+- Design patterns that worked (e.g. "CSS custom properties for theme tokens")
+- Things that didn't work and why
+- Environment-specific notes
+
+### What Goes in `decisions.md`
+
+Every significant choice with:
+- **Date** — when decided
+- **Decision** — what was chosen
+- **Rationale** — why (link to discovery docs where possible)
+- **Source** — reference to discovery line number, stakeholder quote, etc.
+
+---
+
+## Invariants — The Safety Net
+
+`agents/memory-bank/invariants.md` contains rules that must NEVER be violated.
+Every agent checks these at session start and before PR merge.
+
+Example invariants (customize per project):
+- Speed over perfection — build for demo-readiness
+- Seed with real data — always use actual customer data
+- Prototype code is disposable — the PRD is the permanent deliverable
+- Same stack as the reference project — no divergence
+- Every PRD change requires human approval
+- ReviewerAgent is mandatory — no unreviewed merges
+
+If any invariant is violated: **STOP and fix before proceeding.**
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Background process dies with exit 130 (SIGINT) | Use `screen -dmS` instead of `&` |
+| Codex says "stdout is not a terminal" | Wrap with `script -q <log> command codex ...` |
+| Worker exits 0 but no files created | Check log file, worker may have only planned but not written |
+| Memory bank is stale | Run governance checklist immediately |
+| Agent tries to rebuild existing code | `current-state.md` is probably outdated — update it |
+| Agent ignores skills | Prompt must say "Read .agent/skills/<name>/SKILL.md first" |
+| Drizzle "object is not iterable" | Missing `await` on `.insert().returning()` or `.run()` |
