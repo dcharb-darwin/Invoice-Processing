@@ -5,6 +5,7 @@ import { invoicesRouter } from "./routers/invoices.js";
 import { fundingSourcesRouter } from "./routers/fundingSources.js";
 import { gutcheckRouter } from "./routers/gutcheck.js";
 import { exportRouter } from "./routers/export.js";
+import { importRouter } from "./routers/import.js";
 
 export const appRouter = router({
     projects: projectsRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
     fundingSources: fundingSourcesRouter,
     gutcheck: gutcheckRouter,
     export: exportRouter,
+    import: importRouter,
 });
 
 export type AppRouter = typeof appRouter;
