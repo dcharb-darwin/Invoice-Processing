@@ -9,6 +9,7 @@ import { importRouter } from "./routers/import.js";
 import { grantsRouter } from "./routers/grants.js";
 import { tasklineSyncRouter } from "./routers/tasklineSync.js";
 import { templatesRouter } from "./routers/templates.js";
+import { syncConfigRouter } from "./routers/syncConfig.js";
 
 export const appRouter = router({
     projects: projectsRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
     grants: grantsRouter,
     sync: tasklineSyncRouter,
     templates: templatesRouter,
+    syncConfig: syncConfigRouter,
 });
 
 export type AppRouter = typeof appRouter;

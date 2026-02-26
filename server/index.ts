@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "./router.js";
+import { initSyncEngine } from "./syncEngine.js";
 
 const app = express();
 const PORT = 3001;
@@ -23,4 +24,5 @@ app.get("/api/health", (_req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Server running at http://localhost:${PORT}`);
     console.log(`   tRPC: http://localhost:${PORT}/api/trpc`);
+    initSyncEngine();
 });

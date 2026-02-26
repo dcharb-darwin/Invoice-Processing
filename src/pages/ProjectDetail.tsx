@@ -165,15 +165,18 @@ export default function ProjectDetail({
                 <div className="flex items-center gap-2">
                     {/* Sync status / Push to TaskLine */}
                     {syncStatus?.linked ? (
-                        <a
-                            href={`http://localhost:5174/#/project/${syncStatus.tasklineProjectId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
-                            title="Open in TaskLine"
-                        >
-                            🔗 TaskLine #{syncStatus.tasklineProjectId} ↗
-                        </a>
+                        <>
+                            <a
+                                href={`http://localhost:5174/#/project/${syncStatus.tasklineProjectId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                                title="Open in TaskLine"
+                            >
+                                🔗 TaskLine #{syncStatus.tasklineProjectId} ↗
+                            </a>
+                            <AutoSyncToggle projectId={projectId} onUpdate={() => refetch()} />
+                        </>
                     ) : (
                         <button
                             onClick={() => pushToTaskline.mutate({ projectId })}
@@ -867,3 +870,52 @@ function PhasesTab({ project, onUpdate }: { project: any; onUpdate: () => void }
     );
 }
 
+
+// ============================================================
+// Auto-Sync Toggle — per-project override
+// ============================================================
+
+function AutoSyncToggle({ projectId, onUpdate }: { projectId: number; onUpdate: () => void }) {
+    const { data: syncStatus } = trpc.syncConfig.getProjectSyncStatus.useQuery({ projectId });
+    const setOverride = trpc.syncConfig.setProjectOverride.useMutation({
+        onSuccess: () => onUpdate(),
+    });
+
+    if (!syncStatus) return null;
+
+    // Cycle: null (global) → true (force on) → false (force off) → null
+    const handleToggle = () => {
+        const nextValue =
+            syncStatus.projectOverride === null ? true :
+                syncStatus.projectOverride === true ? false :
+                    null;
+        setOverride.mutate({ projectId, autoSyncEnabled: nextValue });
+    };
+
+    const label =
+        syncStatus.projectOverride === true ? "Auto ✓" :
+            syncStatus.projectOverride === false ? "Auto ✗" :
+                syncStatus.effectiveEnabled ? "Auto ↻" : "Auto ·";
+
+    const className =
+        syncStatus.projectOverride === true
+            ? "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30"
+            : syncStatus.projectOverride === false
+                ? "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30"
+                : "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800";
+
+    return (
+        <button
+            onClick={handleToggle}
+            disabled={setOverride.isPending}
+            className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${className}`}
+            title={
+                syncStatus.projectOverride === true ? "Auto-sync forced ON (click to force OFF)"
+                    : syncStatus.projectOverride === false ? "Auto-sync forced OFF (click to use global)"
+                        : `Auto-sync: using global setting (${syncStatus.effectiveEnabled ? "on" : "off"}). Click to force ON.`
+            }
+        >
+            {label}
+        </button>
+    );
+}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney } from "../lib/format.js";
 import NewProjectModal from "./NewProjectModal.js";
+import SyncSettings from "./SyncSettings.js";
 
 const SYNC_BADGE = {
     linked: { text: "🔗 TaskLine", className: "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30" },
@@ -16,6 +17,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
     const [exportingId, setExportingId] = useState<number | null>(null);
     const [showTasklineModal, setShowTasklineModal] = useState(false);
     const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+    const [showSyncSettings, setShowSyncSettings] = useState(false);
     const utils = trpc.useUtils();
 
     const { data: tasklineProjects } = trpc.sync.listTasklineProjects.useQuery(
@@ -93,6 +95,13 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                         className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2"
                     >
                         🔄 Import from TaskLine
+                    </button>
+                    <button
+                        onClick={() => setShowSyncSettings(true)}
+                        className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        title="Sync Settings"
+                    >
+                        ⚙️
                     </button>
                 </div>
             </div>
@@ -274,6 +283,10 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                     utils.projects.list.invalidate();
                     onSelectProject(projectId);
                 }}
+            />
+            <SyncSettings
+                open={showSyncSettings}
+                onClose={() => setShowSyncSettings(false)}
             />
         </div>
     );

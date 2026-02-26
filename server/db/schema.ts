@@ -55,6 +55,7 @@ export const projects = sqliteTable("projects", {
     tasklineProjectId: integer("taskline_project_id"), // Future: API sync
     syncDirection: text("sync_direction"), // "taskline_to_ipc" | "ipc_to_taskline" | null
     lastSyncedAt: text("last_synced_at"), // ISO timestamp of last successful sync
+    autoSyncEnabled: integer("auto_sync_enabled", { mode: "boolean" }), // null = use global, true/false = override
     createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
     updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
@@ -149,6 +150,19 @@ export const projectPhases = sqliteTable("project_phases", {
     order: integer("order").notNull().default(0),
     status: text("status").default("Not Started"), // Not Started | In Progress | Complete
     checklist: text("checklist"), // JSON array: [{item: string, done: boolean}]
+});
+
+// [trace: auto-sync — global sync configuration, single-row pattern]
+export const SYNC_MODES = ["manual", "auto_taskline_to_ipc", "auto_ipc_to_taskline", "auto_bidirectional"] as const;
+export type SyncMode = (typeof SYNC_MODES)[number];
+
+export const syncConfig = sqliteTable("sync_config", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    mode: text("mode").$type<SyncMode>().notNull().default("manual"),
+    intervalSeconds: integer("interval_seconds").notNull().default(60),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    lastAutoSyncAt: text("last_auto_sync_at"),
+    lastAutoSyncResult: text("last_auto_sync_result"), // JSON: {synced: number, errors: string[]}
 });
 
 // ============================================================

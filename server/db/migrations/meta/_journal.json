@@ -22,6 +22,13 @@
       "when": 1772144489292,
       "tag": "0002_cuddly_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772145450410,
+      "tag": "0003_right_pyro",
+      "breakpoints": true
     }
   ]
 }
