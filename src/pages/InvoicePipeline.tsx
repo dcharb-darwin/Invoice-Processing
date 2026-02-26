@@ -57,7 +57,10 @@ export default function InvoicePipeline() {
                             {laneInvoices.map((inv) => (
                                 <div
                                     key={inv.id}
-                                    className={`rounded-lg shadow-sm p-3 text-sm border-l-[3px] ${
+                                    onClick={() => {
+                                        window.location.hash = `/project/${inv.projectId}/invoices`;
+                                    }}
+                                    className={`rounded-lg shadow-sm p-3 text-sm border-l-[3px] cursor-pointer hover:shadow-md transition-all ${
                                         status === "Paid"
                                             ? "border-l-emerald-500"
                                             : "border-l-blue-600"

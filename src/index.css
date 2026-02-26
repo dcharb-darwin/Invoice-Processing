@@ -51,3 +51,12 @@ body {
 #root {
   min-height: 100vh;
 }
+
+@keyframes flash-yellow {
+  0% { background-color: #fef08a; }
+  100% { background-color: transparent; }
+}
+
+.animate-flash-yellow {
+  animation: flash-yellow 1.5s ease-out;
+}

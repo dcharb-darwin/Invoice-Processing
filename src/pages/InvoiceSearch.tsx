@@ -72,7 +72,9 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                     {results.map((inv) => (
                         <div
                             key={inv.id}
-                            onClick={() => onSelectProject(inv.projectId)}
+                            onClick={() => {
+                                window.location.hash = `/project/${inv.projectId}/invoices`;
+                            }}
                             className="rounded-xl border shadow-sm p-4 hover:shadow-md cursor-pointer transition-all"
                             style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                         >

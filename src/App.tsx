@@ -15,7 +15,7 @@ import GrantPackage from "./pages/GrantPackage.js";
 type Route =
     | { page: "portfolio" }
     | { page: "projects" }
-    | { page: "project"; id: number }
+    | { page: "project"; id: number; tab?: string }
     | { page: "search" }
     | { page: "import" }
     | { page: "pipeline" }
@@ -24,8 +24,10 @@ type Route =
 function parseHash(): Route {
     const hash = window.location.hash.slice(1);
     if (hash.startsWith("/project/")) {
-        const id = parseInt(hash.split("/")[2]);
-        if (!isNaN(id)) return { page: "project", id };
+        const parts = hash.split("/");
+        const id = parseInt(parts[2]);
+        const tab = parts[3]; // e.g. "invoices", "contracts", "funding", "row"
+        if (!isNaN(id)) return { page: "project", id, tab };
     }
     if (hash === "/portfolio") return { page: "portfolio" };
     if (hash === "/search") return { page: "search" };
@@ -60,7 +62,7 @@ function App() {
     const navigate = (r: Route) => {
         if (r.page === "projects") window.location.hash = "/";
         else if (r.page === "portfolio") window.location.hash = "/portfolio";
-        else if (r.page === "project") window.location.hash = `/project/${r.id}`;
+        else if (r.page === "project") window.location.hash = `/project/${r.id}${r.tab ? `/${r.tab}` : ""}`;
         else if (r.page === "search") window.location.hash = "/search";
         else if (r.page === "import") window.location.hash = "/import";
         else if (r.page === "pipeline") window.location.hash = "/pipeline";
@@ -109,8 +111,8 @@ function App() {
                                 key={item.route.page}
                                 onClick={() => navigate(item.route)}
                                 className={`px-3.5 py-1.5 text-sm rounded-lg font-medium transition-colors ${route.page === item.route.page
-                                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                                        : "hover:bg-gray-100 dark:hover:bg-slate-800"
+                                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                                    : "hover:bg-gray-100 dark:hover:bg-slate-800"
                                     }`}
                                 style={{ color: route.page === item.route.page ? undefined : "var(--color-text-secondary)" }}
                             >
@@ -151,6 +153,7 @@ function App() {
                 {route.page === "project" && (
                     <ProjectDetail
                         projectId={route.id}
+                        initialTab={route.tab}
                         onBack={() => navigate({ page: "projects" })}
                     />
                 )}

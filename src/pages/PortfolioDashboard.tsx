@@ -35,10 +35,21 @@ function HealthDot({ tone }: { tone: HealthTone }) {
     );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetricCard({
+    label,
+    value,
+    onClick,
+    className,
+}: {
+    label: string;
+    value: string;
+    onClick?: () => void;
+    className?: string;
+}) {
     return (
         <div
-            className="rounded-xl border shadow-sm p-4"
+            onClick={onClick}
+            className={`rounded-xl border shadow-sm p-4 ${className ?? ""}`}
             style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
         >
             <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -139,7 +150,14 @@ export default function PortfolioDashboard({
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard label="Total Projects" value={totals.projects.toLocaleString("en-US")} />
+                <MetricCard
+                    label="Total Projects"
+                    value={totals.projects.toLocaleString("en-US")}
+                    onClick={() => {
+                        window.location.hash = "/";
+                    }}
+                    className="cursor-pointer hover:shadow-md"
+                />
                 <MetricCard label="Total Budget" value={formatMoney(totals.budget)} />
                 <MetricCard label="Total Paid" value={formatMoney(totals.paid)} />
                 <MetricCard label="Total Remaining" value={formatMoney(totalRemaining)} />

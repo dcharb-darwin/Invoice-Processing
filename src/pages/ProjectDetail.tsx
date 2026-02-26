@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate, formatPercent } from "../lib/format.js";
 
@@ -11,21 +11,56 @@ import { formatMoney, formatDate, formatPercent } from "../lib/format.js";
 
 type Tab = "budget" | "contracts" | "invoices" | "funding" | "parcels";
 
+const TAB_MAP: Record<string, Tab> = {
+    budget: "budget",
+    contracts: "contracts",
+    invoices: "invoices",
+    funding: "funding",
+    row: "parcels",
+    parcels: "parcels",
+};
+
 export default function ProjectDetail({
     projectId,
     onBack,
+    initialTab,
 }: {
     projectId: number;
     onBack: () => void;
+    initialTab?: string;
 }) {
-    const [activeTab, setActiveTab] = useState<Tab>("budget");
+    const [activeTab, setActiveTab] = useState<Tab>(
+        (initialTab && TAB_MAP[initialTab]) || "budget"
+    );
     const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+    const [flashBliId, setFlashBliId] = useState<number | null>(null);
+    const budgetTableRef = useRef<HTMLDivElement>(null);
+
+    // Sync active tab when navigating from another page (e.g. Pipeline → #/project/1/invoices)
+    useEffect(() => {
+        if (initialTab && TAB_MAP[initialTab]) {
+            setActiveTab(TAB_MAP[initialTab]);
+        }
+    }, [initialTab]);
 
     const { data: project, isLoading, refetch } = trpc.projects.byId.useQuery({ id: projectId });
     const { data: alerts } = trpc.gutcheck.forProject.useQuery({ projectId });
     const createInvoice = trpc.invoices.create.useMutation({ onSuccess: () => { refetch(); setShowInvoiceForm(false); } });
     const addSupplement = trpc.contracts.addSupplement.useMutation({ onSuccess: () => refetch() });
     const createFunding = trpc.fundingSources.create.useMutation({ onSuccess: () => refetch() });
+
+    const handleAlertClick = useCallback((alert: any) => {
+        setActiveTab("budget");
+        if (alert.type === "budget_line_item" && alert.entityId) {
+            setFlashBliId(alert.entityId);
+            setTimeout(() => setFlashBliId(null), 1500);
+        }
+        setTimeout(() => budgetTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }, []);
+
+    const handleBudgetRowClick = useCallback(() => {
+        setActiveTab("contracts");
+    }, []);
 
     const [exporting, setExporting] = useState(false);
     const utils = trpc.useUtils();
@@ -111,9 +146,10 @@ export default function ProjectDetail({
                     {alerts.map((alert, i) => (
                         <div
                             key={i}
-                            className={`rounded-lg px-4 py-3 text-sm flex items-center gap-3 border ${alert.severity === "red"
-                                    ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300"
-                                    : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300"
+                            onClick={() => handleAlertClick(alert)}
+                            className={`rounded-lg px-4 py-3 text-sm flex items-center gap-3 border cursor-pointer transition-colors ${alert.severity === "red"
+                                ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/20"
+                                : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300 dark:hover:bg-amber-500/20"
                                 }`}
                         >
                             <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${alert.severity === "red" ? "bg-red-500" : "bg-amber-500"
@@ -145,8 +181,8 @@ export default function ProjectDetail({
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.key
-                                ? "border-blue-600 text-blue-700 dark:text-blue-300"
-                                : "border-transparent hover:text-blue-600"
+                            ? "border-blue-600 text-blue-700 dark:text-blue-300"
+                            : "border-transparent hover:text-blue-600"
                             }`}
                         style={activeTab !== tab.key ? { color: "var(--color-text-secondary)" } : undefined}
                     >
@@ -159,7 +195,7 @@ export default function ProjectDetail({
             </div>
 
             {/* Tab Content */}
-            {activeTab === "budget" && <BudgetTab project={project} alerts={alerts || []} />}
+            {activeTab === "budget" && <BudgetTab project={project} alerts={alerts || []} budgetTableRef={budgetTableRef} flashBliId={flashBliId} onRowClick={handleBudgetRowClick} />}
             {activeTab === "contracts" && <ContractsTab project={project} onAddSupplement={addSupplement.mutate} />}
             {activeTab === "invoices" && (
                 <InvoicesTab
@@ -192,9 +228,12 @@ function SummaryCard({ label, value, accent = "default" }: { label: string; valu
     );
 }
 
-function BudgetTab({ project, alerts }: { project: any; alerts: any[] }) {
+function BudgetTab({ project, alerts, budgetTableRef, flashBliId, onRowClick }: {
+    project: any; alerts: any[]; budgetTableRef: React.RefObject<HTMLDivElement | null>; flashBliId: number | null; onRowClick: () => void;
+}) {
     return (
         <div
+            ref={budgetTableRef}
             className="rounded-xl border shadow-sm overflow-hidden"
             style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
         >
@@ -216,8 +255,14 @@ function BudgetTab({ project, alerts }: { project: any; alerts: any[] }) {
                         const healthColor = alert
                             ? alert.severity === "red" ? "bg-red-500" : "bg-amber-500"
                             : "bg-emerald-500";
+                        const isFlashing = flashBliId === bli.id;
                         return (
-                            <tr key={bli.id} className="border-b hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors" style={{ borderColor: "var(--color-border-light)" }}>
+                            <tr
+                                key={bli.id}
+                                onClick={onRowClick}
+                                className={`border-b cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300 ${isFlashing ? "animate-flash-yellow" : ""}`}
+                                style={{ borderColor: "var(--color-border-light)" }}
+                            >
                                 <td className="px-4 py-3 font-medium">{bli.category}</td>
                                 <td className="px-4 py-3 text-right" style={{ color: "var(--color-text-secondary)" }}>{formatMoney(bli.projectedCost)}</td>
                                 <td className="px-4 py-3 text-right" style={{ color: "var(--color-text-secondary)" }}>{formatMoney(bli.computed.paidToDate)}</td>
@@ -255,64 +300,99 @@ function BudgetTab({ project, alerts }: { project: any; alerts: any[] }) {
 }
 
 function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplement: any }) {
+    const [expandedId, setExpandedId] = useState<number | null>(null);
+
     return (
         <div className="space-y-4">
             {project.contracts.map((contract: any) => {
                 const supplementTotal = contract.supplements?.reduce((s: number, sup: any) => s + sup.amount, 0) || 0;
                 const cumulativeTotal = contract.originalAmount + supplementTotal;
-                const invoiceTotal = project.invoices
-                    .filter((inv: any) => inv.contractId === contract.id)
-                    .reduce((s: number, inv: any) => s + inv.totalAmount, 0);
+                const contractInvoices = project.invoices.filter((inv: any) => inv.contractId === contract.id);
+                const invoiceTotal = contractInvoices.reduce((s: number, inv: any) => s + inv.totalAmount, 0);
+                const isExpanded = expandedId === contract.id;
 
                 return (
                     <div
                         key={contract.id}
-                        className="rounded-xl border shadow-sm p-5"
+                        className="rounded-xl border shadow-sm cursor-pointer hover:shadow-md transition-all"
                         style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+                        onClick={() => setExpandedId(isExpanded ? null : contract.id)}
                     >
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                                <h4 className="font-semibold text-base">{contract.vendor}</h4>
-                                <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                                    {contract.contractNumber || "No contract #"} · {contract.type}
-                                </p>
-                            </div>
-                            <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${invoiceTotal > cumulativeTotal
+                        <div className="p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs transition-transform duration-200" style={{ color: "var(--color-text-muted)", display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
+                                        ▶
+                                    </span>
+                                    <div>
+                                        <h4 className="font-semibold text-base">{contract.vendor}</h4>
+                                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                            {contract.contractNumber || "No contract #"} · {contract.type}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${invoiceTotal > cumulativeTotal
                                     ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
                                     : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                                }`}>
-                                {invoiceTotal > cumulativeTotal ? "Over" : "On Track"}
-                            </span>
-                        </div>
+                                    }`}>
+                                    {invoiceTotal > cumulativeTotal ? "Over" : "On Track"}
+                                </span>
+                            </div>
 
-                        <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-                            <div>
-                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Original</p>
-                                <p className="font-medium">{formatMoney(contract.originalAmount)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Cumulative</p>
-                                <p className="font-medium">{formatMoney(cumulativeTotal)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Invoiced</p>
-                                <p className={`font-medium ${invoiceTotal > cumulativeTotal ? "text-red-600 dark:text-red-400" : ""}`}>
-                                    {formatMoney(invoiceTotal)}
-                                </p>
-                            </div>
-                        </div>
-
-                        {contract.supplements?.length > 0 && (
-                            <div className="border-t pt-3 mt-3" style={{ borderColor: "var(--color-border-light)" }}>
-                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Supplements</p>
-                                <div className="space-y-1">
-                                    {contract.supplements.map((sup: any) => (
-                                        <div key={sup.id} className="flex justify-between text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                                            <span>#{sup.supplementNumber} — {sup.description || "No description"}</span>
-                                            <span className="font-medium">{formatMoney(sup.amount)}</span>
-                                        </div>
-                                    ))}
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Original</p>
+                                    <p className="font-medium">{formatMoney(contract.originalAmount)}</p>
                                 </div>
+                                <div>
+                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Cumulative</p>
+                                    <p className="font-medium">{formatMoney(cumulativeTotal)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Invoiced</p>
+                                    <p className={`font-medium ${invoiceTotal > cumulativeTotal ? "text-red-600 dark:text-red-400" : ""}`}>
+                                        {formatMoney(invoiceTotal)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {isExpanded && (
+                            <div className="px-5 pb-5 space-y-3">
+                                {contract.supplements?.length > 0 && (
+                                    <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                        <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Supplements</p>
+                                        <div className="space-y-1">
+                                            {contract.supplements.map((sup: any) => (
+                                                <div key={sup.id} className="flex justify-between text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                                                    <span>#{sup.supplementNumber} — {sup.description || "No description"}</span>
+                                                    <span className="font-medium">{formatMoney(sup.amount)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {contractInvoices.length > 0 && (
+                                    <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                        <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Invoices ({contractInvoices.length})</p>
+                                        <div className="space-y-1.5">
+                                            {contractInvoices.map((inv: any) => (
+                                                <div key={inv.id} className="flex items-center justify-between text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-mono text-xs text-blue-700 dark:text-blue-300">{inv.invoiceNumber}</span>
+                                                        <StatusBadge status={inv.status} />
+                                                    </div>
+                                                    <span className="font-medium">{formatMoney(inv.totalAmount)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!contract.supplements?.length && contractInvoices.length === 0 && (
+                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>No supplements or invoices.</p>
+                                )}
                             </div>
                         )}
                     </div>
@@ -325,6 +405,8 @@ function ContractsTab({ project, onAddSupplement }: { project: any; onAddSupplem
 function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice }: {
     project: any; showForm: boolean; onToggleForm: () => void; onCreateInvoice: any;
 }) {
+    const [expandedId, setExpandedId] = useState<number | null>(null);
+
     return (
         <div>
             <div className="flex items-center justify-between mb-4">
@@ -340,47 +422,60 @@ function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice }: {
             {showForm && <InvoiceForm project={project} onSubmit={onCreateInvoice} />}
 
             <div className="space-y-3">
-                {project.invoices.map((inv: any) => (
-                    <div
-                        key={inv.id}
-                        className="rounded-xl border shadow-sm p-4"
-                        style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                                <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
-                                    {inv.invoiceNumber}
-                                </span>
-                                <StatusBadge status={inv.status} />
-                            </div>
-                            <span className="font-bold">{formatMoney(inv.totalAmount)}</span>
-                        </div>
-                        <div className="flex gap-4 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                            <span>{inv.vendor}</span>
-                            <span>Received: {formatDate(inv.dateReceived)}</span>
-                            {inv.dateApproved && <span>Approved: {formatDate(inv.dateApproved)}</span>}
-                            {inv.grantEligible && (
-                                <span className="text-emerald-600 dark:text-emerald-400">Grant: {inv.grantCode}</span>
-                            )}
-                        </div>
-
-                        {inv.taskBreakdowns?.length > 0 && (
-                            <div className="mt-3 border-t pt-2" style={{ borderColor: "var(--color-border-light)" }}>
-                                <div className="grid gap-1">
-                                    {inv.taskBreakdowns.map((tb: any) => (
-                                        <div key={tb.id} className="flex justify-between text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                                            <span>
-                                                {tb.taskCode && <span className="font-mono mr-2" style={{ color: "var(--color-text-muted)" }}>{tb.taskCode}</span>}
-                                                {tb.taskDescription}
+                {project.invoices.map((inv: any) => {
+                    const isExpanded = expandedId === inv.id;
+                    const hasBreakdowns = inv.taskBreakdowns?.length > 0;
+                    return (
+                        <div
+                            key={inv.id}
+                            className={`rounded-xl border shadow-sm transition-all ${hasBreakdowns ? "cursor-pointer hover:shadow-md" : ""}`}
+                            style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+                            onClick={() => hasBreakdowns && setExpandedId(isExpanded ? null : inv.id)}
+                        >
+                            <div className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                            {inv.invoiceNumber}
+                                        </span>
+                                        <StatusBadge status={inv.status} />
+                                        {hasBreakdowns && (
+                                            <span className="text-xs transition-transform duration-200" style={{ color: "var(--color-text-muted)", display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
+                                                ▶
                                             </span>
-                                            <span className="font-medium">{formatMoney(tb.amount)}</span>
-                                        </div>
-                                    ))}
+                                        )}
+                                    </div>
+                                    <span className="font-bold">{formatMoney(inv.totalAmount)}</span>
+                                </div>
+                                <div className="flex gap-4 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                    <span>{inv.vendor}</span>
+                                    <span>Received: {formatDate(inv.dateReceived)}</span>
+                                    {inv.dateApproved && <span>Approved: {formatDate(inv.dateApproved)}</span>}
+                                    {inv.grantEligible && (
+                                        <span className="text-emerald-600 dark:text-emerald-400">Grant: {inv.grantCode}</span>
+                                    )}
                                 </div>
                             </div>
-                        )}
-                    </div>
-                ))}
+
+                            {isExpanded && hasBreakdowns && (
+                                <div className="px-4 pb-4">
+                                    <div className="rounded-lg shadow-sm p-3 space-y-1.5" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
+                                        <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Task Breakdowns</p>
+                                        {inv.taskBreakdowns.map((tb: any) => (
+                                            <div key={tb.id} className="flex justify-between text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                                <span>
+                                                    {tb.taskCode && <span className="font-mono mr-2" style={{ color: "var(--color-text-muted)" }}>{tb.taskCode}</span>}
+                                                    {tb.taskDescription}
+                                                </span>
+                                                <span className="font-medium">{formatMoney(tb.amount)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

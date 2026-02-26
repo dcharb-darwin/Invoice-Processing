@@ -131,7 +131,12 @@ export default function GrantPackage() {
                     {pkg.eligibleInvoices.map((inv, idx) => (
                         <div
                             key={idx}
-                            className="rounded-xl border shadow-sm p-4"
+                            onClick={() => {
+                                if (selectedProjectId !== "") {
+                                    window.location.hash = `/project/${selectedProjectId}/invoices`;
+                                }
+                            }}
+                            className="rounded-xl border shadow-sm p-4 cursor-pointer hover:shadow-md"
                             style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                         >
                             <div className="flex items-center justify-between mb-2">
