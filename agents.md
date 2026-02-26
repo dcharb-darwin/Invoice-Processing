@@ -23,24 +23,46 @@ This swarm builds a **rapid proof-of-concept / semi-functional mockup** — NOT 
 
 ---
 
-## 2. AGENT ROLES
+## 2. ORCHESTRATOR PROTOCOL (executable — Antigravity is the orchestrator)
 
-1. **PlannerAgent** (Claude Code Plan Mode / Antigravity Planning)
-2. **DataModelAgent** — Drizzle schema, migrations, seed scripts
-3. **BusinessLogicAgent** — tRPC routers, gut-check engine, computed fields
-4. **FrontendAgent** — React 19 components, dashboards, forms
-5. **ImportExportAgent** — .xlsx parsing (SheetJS), export generation
-6. **ReviewerAgent** (mandatory gatekeeper) — reviews all PRs and PRD changes
-7. **TesterAgent** (browser-in-loop) — acceptance criteria verification
-8. **DocumentationAgent** — maintains living PRD + demo package
-9. **AntiDriftAgent** (periodic + event-triggered) — governance, drift detection, rewind proposals
+**Antigravity is the ORCHESTRATOR, not a worker.** It reads this file, plans work, dispatches to agent roles, monitors results, and reports to the user. It does NOT directly edit component files unless the change is trivial (< 5 lines, single file, no cross-cutting impact).
 
-**Multi-Agent CLI Support:**
+### 2.1 Mandatory Init Sequence (every conversation)
+
+Before responding to ANY user request that involves code changes:
+1. `view_file` → `.agents/workflows/pattern-first-dispatch.md` (read the enforcement workflow)
+2. `view_file` → `docs/comprehensive-prd.md` (understand current system state)
+3. Decide: is this a **pattern** or a **one-off fix**? Answer in planning artifact.
+4. If pattern → update PRD first, then dispatch. If one-off → dispatch directly.
+
+### 2.2 Agent Roles → Tool Mapping
+
+| Role | How Orchestrator Executes It | When |
+|------|------------------------------|------|
+| **PlannerAgent** | Orchestrator does this itself (PLANNING mode) | Always first |
+| **DataModelAgent** | Orchestrator edits schema/seed directly (small scope) | Schema changes |
+| **BusinessLogicAgent** | Orchestrator edits routers directly (small scope) | API changes |
+| **FrontendAgent** | Orchestrator edits components — BUT only after shared helpers exist | UI changes |
+| **ReviewerAgent** | `browser_subagent` to verify + orchestrator self-review against PRD checklist | After every change |
+| **TesterAgent** | `browser_subagent` with specific test scenarios | After implementation |
+| **DocumentationAgent** | Orchestrator updates PRD, demo-instructions, walkthrough | Before and after |
+| **AntiDriftAgent** | Read `anti-drift-auditor` skill, run governance checks | Every 10 tool calls |
+
+### 2.3 Gating Rules (hard enforcement)
+
+1. **No component edit without shared infrastructure.** If the same pattern appears in 2+ files, create a shared helper/component FIRST, then apply to all surfaces in one pass.
+2. **No code before PRD.** The design goes in `docs/comprehensive-prd.md` before the first line of implementation code.
+3. **No data-specific logic.** Never write `if (projectId === X)` or reference a specific vendor/PM by name in application code (seed data is excepted).
+4. **Skills check before domain work.** Before any domain-specific task (parsing, import, export, budget calc), `view_file` the relevant skill's `SKILL.md`.
+5. **Cross-cutting verification.** After ANY UI change, verify that every page showing the same entity type renders consistently (`browser_subagent`).
+
+### 2.4 Multi-Agent CLI Support
+
 - **Antigravity** (Gemini) — primary orchestrator, reads this file
 - **Claude Code** — reads `CLAUDE.md` (synced with this file)
 - **Codex CLI** — reads `codex-instructions.md` (synced with this file)
 
-All three agents share the same `agents/memory-bank/` and `.agent/skills/` for continuity.
+All agents share the same `agents/memory-bank/` and `.agent/skills/` for continuity.
 
 ---
 
