@@ -86,6 +86,15 @@ export const invoicesRouter = router({
             return updated;
         }),
 
+    // List all invoices across all projects (for pipeline view)
+    listAll: publicProcedure
+        .query(async () => {
+            return db.query.invoices.findMany({
+                with: { taskBreakdowns: true },
+                orderBy: [desc(schema.invoices.dateReceived)],
+            });
+        }),
+
     // Search invoices by number across all projects
     // [trace: discovery L469-476 — Shannon uses invoice # as primary lookup key]
     search: publicProcedure

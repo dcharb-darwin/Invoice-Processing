@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import PortfolioDashboard from "./pages/PortfolioDashboard.js";
 import ProjectsList from "./pages/ProjectsList.js";
 import ProjectDetail from "./pages/ProjectDetail.js";
 import InvoiceSearch from "./pages/InvoiceSearch.js";
 import ImportPage from "./pages/ImportPage.js";
+import InvoicePipeline from "./pages/InvoicePipeline.js";
 
 /**
  * Root app — hash-based routing, TaskLine-matching design.
@@ -10,10 +12,12 @@ import ImportPage from "./pages/ImportPage.js";
  */
 
 type Route =
+    | { page: "portfolio" }
     | { page: "projects" }
     | { page: "project"; id: number }
     | { page: "search" }
-    | { page: "import" };
+    | { page: "import" }
+    | { page: "pipeline" };
 
 function parseHash(): Route {
     const hash = window.location.hash.slice(1);
@@ -21,8 +25,10 @@ function parseHash(): Route {
         const id = parseInt(hash.split("/")[2]);
         if (!isNaN(id)) return { page: "project", id };
     }
+    if (hash === "/portfolio") return { page: "portfolio" };
     if (hash === "/search") return { page: "search" };
     if (hash === "/import") return { page: "import" };
+    if (hash === "/pipeline") return { page: "pipeline" };
     return { page: "projects" };
 }
 
@@ -50,16 +56,20 @@ function App() {
 
     const navigate = (r: Route) => {
         if (r.page === "projects") window.location.hash = "/";
+        else if (r.page === "portfolio") window.location.hash = "/portfolio";
         else if (r.page === "project") window.location.hash = `/project/${r.id}`;
         else if (r.page === "search") window.location.hash = "/search";
         else if (r.page === "import") window.location.hash = "/import";
+        else if (r.page === "pipeline") window.location.hash = "/pipeline";
         setRoute(r);
     };
 
     const navItems = [
+        { label: "Portfolio", icon: "📊", route: { page: "portfolio" } as Route },
         { label: "Projects", icon: "🏗️", route: { page: "projects" } as Route },
         { label: "Import", icon: "📥", route: { page: "import" } as Route },
         { label: "Invoice Search", icon: "🔍", route: { page: "search" } as Route },
+        { label: "Pipeline", icon: "📋", route: { page: "pipeline" } as Route },
     ];
 
     return (
@@ -127,6 +137,9 @@ function App() {
 
             {/* Main content */}
             <main className="max-w-7xl mx-auto px-6 py-8">
+                {route.page === "portfolio" && (
+                    <PortfolioDashboard onSelectProject={(id) => navigate({ page: "project", id })} />
+                )}
                 {route.page === "projects" && (
                     <ProjectsList onSelectProject={(id) => navigate({ page: "project", id })} />
                 )}
@@ -141,6 +154,9 @@ function App() {
                 )}
                 {route.page === "import" && (
                     <ImportPage />
+                )}
+                {route.page === "pipeline" && (
+                    <InvoicePipeline />
                 )}
             </main>
         </div>
