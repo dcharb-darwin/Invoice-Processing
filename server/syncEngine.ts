@@ -42,6 +42,33 @@ async function tlMutate<T>(procedure: string, input: Record<string, unknown>): P
 }
 
 // ---------------------------------------------------------------------------
+// Budget computation
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute aggregated budget totals for an IPC project.
+ * totalProjected = SUM(budgetLineItems.projectedCost)
+ * totalSpent = SUM(invoiceTaskBreakdown.amount) grouped by budget line item
+ */
+export async function computeProjectBudget(projectId: number): Promise<{ totalProjected: number; totalSpent: number }> {
+    const project = await db.query.projects.findFirst({
+        where: eq(schema.projects.id, projectId),
+        with: {
+            budgetLineItems: true,
+            invoices: { with: { taskBreakdowns: true } },
+        },
+    });
+    if (!project) return { totalProjected: 0, totalSpent: 0 };
+
+    const totalProjected = project.budgetLineItems.reduce((s: number, b) => s + b.projectedCost, 0);
+    const totalSpent = project.invoices
+        .flatMap((inv) => inv.taskBreakdowns)
+        .reduce((s: number, tb) => s + tb.amount, 0);
+
+    return { totalProjected, totalSpent };
+}
+
+// ---------------------------------------------------------------------------
 // Sync cycle
 // ---------------------------------------------------------------------------
 
@@ -135,11 +162,15 @@ export async function runSyncCycle(): Promise<{ synced: number; errors: string[]
             // --- IPC → TaskLine: push IPC data to TaskLine ---
             if (shouldSyncToTaskline && project.tasklineProjectId) {
                 try {
+                    // Compute real budget totals from IPC line items
+                    const budget = await computeProjectBudget(project.id);
                     await tlMutate("projects.update", {
                         id: project.tasklineProjectId,
                         name: project.name,
                         projectManager: project.projectManager || undefined,
                         status: project.status || undefined,
+                        budget: budget.totalProjected,
+                        actualBudget: budget.totalSpent,
                         metadata: JSON.stringify({
                             ipcUrl: `${IPC_URL}/#/project/${project.id}`,
                         }),

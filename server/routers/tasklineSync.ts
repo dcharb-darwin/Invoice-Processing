@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { computeProjectBudget } from "../syncEngine.js";
 
 /**
  * TaskLine Sync Router — real bidirectional project sync between
@@ -222,6 +223,9 @@ export const tasklineSyncRouter = router({
                 console.warn("[TaskLineSync] Could not ensure Capital template:", err.message);
             }
 
+            // Compute real budget totals from IPC line items
+            const budgetTotals = await computeProjectBudget(project.id);
+
             // Create real project in TaskLine
             const ipcLink = `${IPC_URL}/#/project/${project.id}`;
             const result = await tasklineMutate<{ id: number }>("projects.create", {
@@ -229,7 +233,8 @@ export const tasklineSyncRouter = router({
                 templateType: "Capital Project",
                 templateId: templateId,
                 projectManager: project.projectManager || undefined,
-                budget: undefined, // IPC computes budget from line items, not stored on project
+                budget: budgetTotals.totalProjected,
+                actualBudget: budgetTotals.totalSpent,
                 status: project.status || "Planning",
                 metadata: JSON.stringify({ ipcUrl: ipcLink }),
             });
