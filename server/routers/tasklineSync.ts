@@ -3,7 +3,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { computeProjectBudget } from "../syncEngine.js";
+import { computeProjectBudget, syncPhaseBudgets } from "../syncEngine.js";
 
 /**
  * TaskLine Sync Router — real bidirectional project sync between
@@ -254,6 +254,14 @@ export const tasklineSyncRouter = router({
                 .returning();
 
             console.log(`[TaskLineSync] Pushed project "${project.name}" → TaskLine ID ${tasklineProjectId}`);
+
+            // Sync per-phase budget data to TaskLine tasks
+            try {
+                const phasesUpdated = await syncPhaseBudgets(input.projectId, tasklineProjectId);
+                console.log(`[TaskLineSync] Synced ${phasesUpdated} phase budgets`);
+            } catch (err: any) {
+                console.warn("[TaskLineSync] Phase budget sync failed:", err.message);
+            }
 
             return {
                 action: "pushed" as const,

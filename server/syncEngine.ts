@@ -68,6 +68,79 @@ export async function computeProjectBudget(projectId: number): Promise<{ totalPr
     return { totalProjected, totalSpent };
 }
 
+/**
+ * Normalize IPC budget category names to match TaskLine phase names.
+ * IPC uses underscores (CM_Services), TaskLine uses spaces (CM Services).
+ */
+function normalizeCategory(category: string): string {
+    return category.replace(/_/g, " ");
+}
+
+/**
+ * Sync per-phase budget data from IPC budget line items to TaskLine tasks.
+ * Maps IPC categories → TaskLine phases, updates task budget/actualBudget.
+ */
+export async function syncPhaseBudgets(projectId: number, tasklineProjectId: number): Promise<number> {
+    // Get IPC budget line items with computed paidToDate
+    const project = await db.query.projects.findFirst({
+        where: eq(schema.projects.id, projectId),
+        with: {
+            budgetLineItems: true,
+            invoices: { with: { taskBreakdowns: true } },
+        },
+    });
+    if (!project || project.budgetLineItems.length === 0) return 0;
+
+    // Compute paidToDate per budget line item
+    const allBreakdowns = project.invoices.flatMap((inv) => inv.taskBreakdowns);
+    const phaseBudgets = project.budgetLineItems.map((bli) => {
+        const paidToDate = allBreakdowns
+            .filter((tb) => tb.budgetLineItemId === bli.id)
+            .reduce((s: number, tb) => s + tb.amount, 0);
+        return {
+            phase: normalizeCategory(bli.category),
+            projected: bli.projectedCost,
+            spent: paidToDate,
+        };
+    });
+
+    // Fetch TaskLine tasks for this project
+    let tlTasks: any[];
+    try {
+        tlTasks = await tlQuery<any[]>("tasks.listByProject", { projectId: tasklineProjectId });
+    } catch {
+        return 0; // TaskLine unreachable
+    }
+    if (!tlTasks || tlTasks.length === 0) return 0;
+
+    let updated = 0;
+    for (const pb of phaseBudgets) {
+        // Find TaskLine tasks in this phase (case-insensitive match)
+        const matchingTasks = tlTasks.filter(
+            (t: any) => t.phase && t.phase.toLowerCase() === pb.phase.toLowerCase()
+        );
+        if (matchingTasks.length === 0) continue;
+
+        // Distribute budget evenly across tasks in the phase (usually 1 task per phase)
+        const budgetPerTask = Math.round(pb.projected / matchingTasks.length);
+        const spentPerTask = Math.round(pb.spent / matchingTasks.length);
+
+        for (const task of matchingTasks) {
+            try {
+                await tlMutate("tasks.update", {
+                    id: task.id,
+                    budget: budgetPerTask,
+                    actualBudget: spentPerTask,
+                });
+                updated++;
+            } catch {
+                // Non-fatal per task
+            }
+        }
+    }
+    return updated;
+}
+
 // ---------------------------------------------------------------------------
 // Sync cycle
 // ---------------------------------------------------------------------------
@@ -176,6 +249,13 @@ export async function runSyncCycle(): Promise<{ synced: number; errors: string[]
                         }),
                     });
                     if (!shouldSyncFromTaskline) synced++;
+
+                    // Phase-level budget sync
+                    try {
+                        await syncPhaseBudgets(project.id, project.tasklineProjectId);
+                    } catch (err: any) {
+                        errors.push(`Phase sync ${project.id}: ${err.message}`);
+                    }
                 } catch (err: any) {
                     // Non-fatal — log but don't fail the cycle
                     errors.push(`Push project ${project.id}: ${err.message}`);
