@@ -165,7 +165,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                 <div className="mb-3">
                                     {project.tasklineProjectId ? (
                                         <a
-                                            href={`http://localhost:5174/#/project/${project.tasklineProjectId}`}
+                                            href={`http://localhost:3000/projects/${project.tasklineProjectId}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             onClick={(e) => e.stopPropagation()}

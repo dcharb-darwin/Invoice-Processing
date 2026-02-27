@@ -225,7 +225,7 @@ export default function ProjectDetail({
                     {syncStatus?.linked ? (
                         <>
                             <a
-                                href={`http://localhost:5174/#/project/${syncStatus.tasklineProjectId}`}
+                                href={`http://localhost:3000/projects/${syncStatus.tasklineProjectId}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"

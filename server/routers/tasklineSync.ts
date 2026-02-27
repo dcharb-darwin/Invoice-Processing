@@ -5,99 +5,130 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 /**
- * TaskLine Sync Router — bidirectional project sync between
+ * TaskLine Sync Router — real bidirectional project sync between
  * TaskLine gen2 and Invoice Processing Coordinator.
  *
- * Since TaskLine is a separate app not running locally, this router
- * provides a SIMULATED integration that models the real API contract.
- * Swap the stubs for real HTTP calls when TaskLine is available.
+ * Uses HTTP calls to TaskLine's tRPC API at TASKLINE_URL.
+ * Falls back gracefully if TaskLine is unreachable.
  *
  * [trace: 02-taskline-gen2-suggestions.md — integration contract]
  * [trace: 01-development-plan.md L245-249 — TaskLine API integration]
  */
 
+const TASKLINE_URL = process.env.TASKLINE_URL || "http://localhost:3000";
+const TASKLINE_TRPC = `${TASKLINE_URL}/api/trpc`;
+const IPC_URL = process.env.IPC_URL || "http://localhost:5173";
+
 // ---------------------------------------------------------------------------
-// Simulated TaskLine projects (would come from TaskLine API in production)
+// TaskLine tRPC HTTP helpers
 // ---------------------------------------------------------------------------
-interface TaskLineProject {
-    id: number;
-    name: string;
-    type: string;
-    status: string;
-    projectManager: string;
-    budget: number; // cents
-    actualBudget: number; // cents
-    externalId: string | null;
-    metadata: Record<string, any> | null;
-    createdAt: string;
+
+async function tasklineQuery<T>(procedure: string, input?: Record<string, unknown>): Promise<T> {
+    const url = input
+        ? `${TASKLINE_TRPC}/${procedure}?input=${encodeURIComponent(JSON.stringify({ json: input }))}`
+        : `${TASKLINE_TRPC}/${procedure}`;
+    const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
+    if (!res.ok) throw new Error(`TaskLine ${procedure} failed: ${res.status} ${res.statusText}`);
+    const json = await res.json() as any;
+    return json.result?.data?.json ?? json.result?.data ?? json;
 }
 
-const SIMULATED_TASKLINE_PROJECTS: TaskLineProject[] = [
-    {
-        id: 101,
-        name: "Sunnyside Drainage Improvement",
-        type: "Capital",
-        status: "Active",
-        projectManager: "Eric",
-        budget: 1_500_000_00, // $1.5M
-        actualBudget: 0,
-        externalId: null,
-        metadata: null,
-        createdAt: "2026-01-15T10:00:00Z",
-    },
-    {
-        id: 102,
-        name: "12th Street NE Overlay",
-        type: "Capital",
-        status: "Planning",
-        projectManager: "Shannon",
-        budget: 800_000_00, // $800K
-        actualBudget: 0,
-        externalId: null,
-        metadata: null,
-        createdAt: "2026-02-01T14:30:00Z",
-    },
-    {
-        id: 103,
-        name: "Centennial Trail Extension Phase 3",
-        type: "Capital",
-        status: "Active",
-        projectManager: "Eric",
-        budget: 2_200_000_00, // $2.2M
-        actualBudget: 450_000_00,
-        externalId: null,
-        metadata: null,
-        createdAt: "2025-11-20T09:00:00Z",
-    },
-];
+async function tasklineMutate<T>(procedure: string, input: Record<string, unknown>): Promise<T> {
+    const res = await fetch(`${TASKLINE_TRPC}/${procedure}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json: input }),
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`TaskLine ${procedure} failed: ${res.status} ${text}`);
+    }
+    const json = await res.json() as any;
+    return json.result?.data?.json ?? json.result?.data ?? json;
+}
 
-// Track which simulated projects have been linked (in-memory for demo)
-const linkedTasklineIds = new Set<number>();
+// ---------------------------------------------------------------------------
+// Ensure Capital Project template exists in TaskLine
+// ---------------------------------------------------------------------------
+let capitalTemplateId: number | null = null;
+
+async function ensureCapitalTemplate(): Promise<number> {
+    if (capitalTemplateId) return capitalTemplateId;
+
+    // Check existing templates
+    const templates = await tasklineQuery<any[]>("templates.list");
+    const existing = templates.find(
+        (t: any) => t.name === "Capital Project" || t.templateKey === "capital_project"
+    );
+    if (existing) {
+        capitalTemplateId = existing.id;
+        return existing.id;
+    }
+
+    // Create Capital Project template in TaskLine
+    const created = await tasklineMutate<any>("templates.create", {
+        name: "Capital Project",
+        templateKey: "capital_project",
+        description: "Capital infrastructure project with budget phases for Design, CM, Construction, ROW, and Permitting",
+        status: "Published",
+        phases: ["Design", "CM Services", "Construction", "ROW", "Permitting"],
+        sampleTasks: [
+            { taskId: "DES-001", taskDescription: "Design review and approval", phase: "Design", priority: "High" },
+            { taskId: "CM-001", taskDescription: "CM contract execution", phase: "CM Services", priority: "High" },
+            { taskId: "CON-001", taskDescription: "Construction mobilization", phase: "Construction", priority: "High" },
+            { taskId: "ROW-001", taskDescription: "ROW acquisition", phase: "ROW", priority: "Medium" },
+            { taskId: "PER-001", taskDescription: "Permit application", phase: "Permitting", priority: "Medium" },
+        ],
+    });
+
+    capitalTemplateId = created.id;
+    console.log(`[TaskLineSync] Created Capital Project template in TaskLine: ID ${created.id}`);
+    return created.id;
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 
 export const tasklineSyncRouter = router({
     /**
      * List available TaskLine projects that can be imported.
-     * In production: GET /api/trpc/projects.list on TaskLine
+     * Calls real TaskLine API: projects.list
      */
     listTasklineProjects: publicProcedure.query(async () => {
-        // Check which are already linked in IPC
-        const ipcProjects = await db.query.projects.findMany();
-        const linkedIds = new Set(
-            ipcProjects
-                .filter((p) => p.tasklineProjectId != null)
-                .map((p) => p.tasklineProjectId!)
-        );
+        try {
+            const tlProjects = await tasklineQuery<any[]>("projects.list");
 
-        return SIMULATED_TASKLINE_PROJECTS.map((tlp) => ({
-            ...tlp,
-            alreadyLinked: linkedIds.has(tlp.id),
-        }));
+            // Check which are already linked in IPC
+            const ipcProjects = await db.query.projects.findMany();
+            const linkedIds = new Set(
+                ipcProjects
+                    .filter((p) => p.tasklineProjectId != null)
+                    .map((p) => p.tasklineProjectId!)
+            );
+
+            return tlProjects.map((tlp: any) => ({
+                id: tlp.id,
+                name: tlp.name,
+                type: tlp.templateType || "Unknown",
+                status: tlp.status || "Unknown",
+                projectManager: tlp.projectManager || "—",
+                budget: tlp.budget || 0,
+                actualBudget: tlp.actualBudget || 0,
+                externalId: tlp.externalId || null,
+                metadata: tlp.metadata || null,
+                createdAt: tlp.createdAt,
+                alreadyLinked: linkedIds.has(tlp.id),
+            }));
+        } catch (err: any) {
+            console.error("[TaskLineSync] Failed to fetch TaskLine projects:", err.message);
+            return []; // Return empty if TaskLine is unreachable
+        }
     }),
 
     /**
      * Flow 1: TaskLine → IPC
-     * Receive a TaskLine project and create/update the matching IPC project.
-     * In production: This is a webhook endpoint or poll-based sync.
+     * Import a real TaskLine project into IPC.
      */
     receiveFromTaskline: publicProcedure
         .input(
@@ -106,10 +137,11 @@ export const tasklineSyncRouter = router({
             })
         )
         .mutation(async ({ input }) => {
-            // Find the simulated TaskLine project
-            const tlProject = SIMULATED_TASKLINE_PROJECTS.find(
-                (p) => p.id === input.tasklineProjectId
-            );
+            // Get real project from TaskLine
+            const tlProject = await tasklineQuery<any>("projects.getById", {
+                id: input.tasklineProjectId,
+            });
+
             if (!tlProject) {
                 throw new Error(`TaskLine project ${input.tasklineProjectId} not found`);
             }
@@ -125,8 +157,8 @@ export const tasklineSyncRouter = router({
                     .update(schema.projects)
                     .set({
                         name: tlProject.name,
-                        projectManager: tlProject.projectManager,
-                        status: tlProject.status,
+                        projectManager: tlProject.projectManager || existing.projectManager,
+                        status: tlProject.status || existing.status,
                         lastSyncedAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                     })
@@ -141,22 +173,31 @@ export const tasklineSyncRouter = router({
                 .values({
                     name: tlProject.name,
                     type: "ST", // Default to ST for capital projects
-                    status: tlProject.status,
-                    projectManager: tlProject.projectManager,
+                    status: tlProject.status || "Active",
+                    projectManager: tlProject.projectManager || null,
                     tasklineProjectId: tlProject.id,
                     syncDirection: "taskline_to_ipc",
                     lastSyncedAt: new Date().toISOString(),
                 })
                 .returning();
 
-            linkedTasklineIds.add(tlProject.id);
+            // Store IPC link back in TaskLine metadata
+            try {
+                const ipcLink = `${IPC_URL}/#/project/${created.id}`;
+                await tasklineMutate("projects.update", {
+                    id: tlProject.id,
+                    metadata: JSON.stringify({ ipcUrl: ipcLink }),
+                });
+            } catch (err: any) {
+                console.warn("[TaskLineSync] Could not update TaskLine metadata:", err.message);
+            }
+
             return { action: "created" as const, project: created };
         }),
 
     /**
      * Flow 2: IPC → TaskLine
-     * Push an IPC project to TaskLine (simulated).
-     * In production: POST /api/trpc/projects.create on TaskLine
+     * Create a real project in TaskLine from an IPC project.
      */
     pushToTaskline: publicProcedure
         .input(
@@ -173,14 +214,33 @@ export const tasklineSyncRouter = router({
                 throw new Error(`Project already linked to TaskLine ID ${project.tasklineProjectId}`);
             }
 
-            // Simulate creating in TaskLine — generate a fake TaskLine project ID
-            const simulatedTasklineId = 200 + input.projectId;
+            // Ensure Capital Project template exists in TaskLine
+            let templateId: number | undefined;
+            try {
+                templateId = await ensureCapitalTemplate();
+            } catch (err: any) {
+                console.warn("[TaskLineSync] Could not ensure Capital template:", err.message);
+            }
 
-            // Update IPC project with the link
+            // Create real project in TaskLine
+            const ipcLink = `${IPC_URL}/#/project/${project.id}`;
+            const result = await tasklineMutate<{ id: number }>("projects.create", {
+                name: project.name,
+                templateType: "Capital Project",
+                templateId: templateId,
+                projectManager: project.projectManager || undefined,
+                budget: undefined, // IPC computes budget from line items, not stored on project
+                status: project.status || "Planning",
+                metadata: JSON.stringify({ ipcUrl: ipcLink }),
+            });
+
+            const tasklineProjectId = result.id;
+
+            // Update IPC project with the real TaskLine link
             const [updated] = await db
                 .update(schema.projects)
                 .set({
-                    tasklineProjectId: simulatedTasklineId,
+                    tasklineProjectId: tasklineProjectId,
                     syncDirection: "ipc_to_taskline",
                     lastSyncedAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
@@ -188,9 +248,11 @@ export const tasklineSyncRouter = router({
                 .where(eq(schema.projects.id, input.projectId))
                 .returning();
 
+            console.log(`[TaskLineSync] Pushed project "${project.name}" → TaskLine ID ${tasklineProjectId}`);
+
             return {
                 action: "pushed" as const,
-                tasklineProjectId: simulatedTasklineId,
+                tasklineProjectId,
                 project: updated,
             };
         }),
