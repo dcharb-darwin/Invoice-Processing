@@ -182,40 +182,29 @@ export async function runSyncCycle(): Promise<{ synced: number; errors: string[]
                         id: project.tasklineProjectId,
                     });
 
-                    if (!tlProject || !tlProject.id) {
-                        // Stale ID — TaskLine project doesn't exist. Clear the link.
-                        console.warn(
-                            `[SyncEngine] TaskLine project ${project.tasklineProjectId} not found — clearing stale link for IPC project ${project.id}`
-                        );
+                    if (tlProject && tlProject.id) {
                         await db
                             .update(schema.projects)
                             .set({
-                                tasklineProjectId: null,
-                                syncDirection: null,
+                                name: tlProject.name || project.name,
+                                projectManager: tlProject.projectManager || project.projectManager,
+                                status: tlProject.status || project.status,
                                 lastSyncedAt: new Date().toISOString(),
                                 updatedAt: new Date().toISOString(),
                             })
                             .where(eq(schema.projects.id, project.id));
-                        continue; // Skip further sync for this project
-                    }
-
-                    // Update IPC project with latest TaskLine data
-                    await db
-                        .update(schema.projects)
-                        .set({
-                            name: tlProject.name || project.name,
-                            projectManager: tlProject.projectManager || project.projectManager,
-                            status: tlProject.status || project.status,
-                            lastSyncedAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
-                        })
-                        .where(eq(schema.projects.id, project.id));
-                    synced++;
-                } catch (err: any) {
-                    if (err.message?.includes("404")) {
-                        // Stale ID — clear it
+                        synced++;
+                    } else {
                         console.warn(
-                            `[SyncEngine] TaskLine ${project.tasklineProjectId} returned 404 — clearing for IPC project ${project.id}`
+                            `[SyncEngine] TaskLine project ${project.tasklineProjectId} returned unexpected shape — skipping (NOT clearing link)`
+                        );
+                    }
+                } catch (err: any) {
+                    const msg = err.message || "";
+                    if (msg.includes("404")) {
+                        // Definitive 404 — clear stale link
+                        console.warn(
+                            `[SyncEngine] TaskLine ${project.tasklineProjectId} returned 404 — clearing stale link for IPC project ${project.id}`
                         );
                         await db
                             .update(schema.projects)
@@ -228,14 +217,14 @@ export async function runSyncCycle(): Promise<{ synced: number; errors: string[]
                             .where(eq(schema.projects.id, project.id));
                         continue;
                     }
-                    throw err; // Re-throw non-404 errors
+                    // Connection error — skip but preserve link
+                    errors.push(`Pull project ${project.id}: ${msg} (link preserved)`);
                 }
             }
 
             // --- IPC → TaskLine: push IPC data to TaskLine ---
             if (shouldSyncToTaskline && project.tasklineProjectId) {
                 try {
-                    // Compute real budget totals from IPC line items
                     const budget = await computeProjectBudget(project.id);
                     await tlMutate("projects.update", {
                         id: project.tasklineProjectId,
@@ -257,7 +246,6 @@ export async function runSyncCycle(): Promise<{ synced: number; errors: string[]
                         errors.push(`Phase sync ${project.id}: ${err.message}`);
                     }
                 } catch (err: any) {
-                    // Non-fatal — log but don't fail the cycle
                     errors.push(`Push project ${project.id}: ${err.message}`);
                 }
             }
