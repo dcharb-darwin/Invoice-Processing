@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ViewModeProvider, useViewMode } from "./lib/ViewModeContext.js";
 import PortfolioDashboard from "./pages/PortfolioDashboard.js";
 import ProjectsList from "./pages/ProjectsList.js";
 import ProjectDetail from "./pages/ProjectDetail.js";
@@ -37,10 +38,20 @@ function parseHash(): Route {
     return { page: "projects" };
 }
 
-function App() {
+function AppInner() {
     const [route, setRoute] = useState<Route>(parseHash);
     const [health, setHealth] = useState<string>("checking...");
     const [dark, setDark] = useState(false);
+    const { viewMode, setViewMode, isMvp } = useViewMode();
+
+    // Vision-only pages — redirect to projects in MVP mode
+    const VISION_PAGES = new Set(["portfolio", "pipeline", "grants"]);
+
+    useEffect(() => {
+        if (isMvp && VISION_PAGES.has(route.page)) {
+            navigate({ page: "projects" });
+        }
+    }, [isMvp, route.page]);
 
     useEffect(() => {
         fetch("/api/health")
@@ -70,14 +81,15 @@ function App() {
         setRoute(r);
     };
 
-    const navItems = [
-        { label: "Portfolio", icon: "📊", route: { page: "portfolio" } as Route },
-        { label: "Projects", icon: "🏗️", route: { page: "projects" } as Route },
-        { label: "Import", icon: "📥", route: { page: "import" } as Route },
-        { label: "Invoice Search", icon: "🔍", route: { page: "search" } as Route },
-        { label: "Pipeline", icon: "📋", route: { page: "pipeline" } as Route },
-        { label: "Grants", icon: "💰", route: { page: "grants" } as Route },
+    const allNavItems = [
+        { label: "Portfolio", icon: "📊", route: { page: "portfolio" } as Route, visionOnly: true },
+        { label: "Projects", icon: "🏗️", route: { page: "projects" } as Route, visionOnly: false },
+        { label: "Import", icon: "📥", route: { page: "import" } as Route, visionOnly: false },
+        { label: "Invoice Search", icon: "🔍", route: { page: "search" } as Route, visionOnly: false },
+        { label: "Pipeline", icon: "📋", route: { page: "pipeline" } as Route, visionOnly: true },
+        { label: "Grants", icon: "💰", route: { page: "grants" } as Route, visionOnly: true },
     ];
+    const navItems = allNavItems.filter(item => !isMvp || !item.visionOnly);
 
     return (
         <div className="min-h-screen" style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
@@ -122,6 +134,30 @@ function App() {
                     </nav>
 
                     <div className="flex items-center gap-3">
+                        {/* MVP / Vision toggle */}
+                        <div className="flex items-center rounded-lg border overflow-hidden text-xs font-medium" style={{ borderColor: "var(--color-border)" }}>
+                            <button
+                                onClick={() => setViewMode("mvp")}
+                                className={`px-3 py-1.5 transition-colors ${isMvp
+                                        ? "bg-blue-600 text-white"
+                                        : "hover:bg-gray-100 dark:hover:bg-slate-800"
+                                    }`}
+                                style={!isMvp ? { color: "var(--color-text-secondary)" } : undefined}
+                            >
+                                MVP
+                            </button>
+                            <button
+                                onClick={() => setViewMode("vision")}
+                                className={`px-3 py-1.5 transition-colors ${!isMvp
+                                        ? "bg-indigo-600 text-white"
+                                        : "hover:bg-gray-100 dark:hover:bg-slate-800"
+                                    }`}
+                                style={isMvp ? { color: "var(--color-text-secondary)" } : undefined}
+                            >
+                                Vision
+                            </button>
+                        </div>
+
                         {/* Dark mode toggle */}
                         <button
                             onClick={() => setDark(!dark)}
@@ -172,6 +208,14 @@ function App() {
                 )}
             </main>
         </div>
+    );
+}
+
+function App() {
+    return (
+        <ViewModeProvider>
+            <AppInner />
+        </ViewModeProvider>
     );
 }
 

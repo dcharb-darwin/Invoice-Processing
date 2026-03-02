@@ -120,6 +120,8 @@ export const invoices = sqliteTable("invoices", {
     grantCode: text("grant_code"),
     sourcePdfPath: text("source_pdf_path"),
     signedPdfPath: text("signed_pdf_path"),
+    reviewedBy: text("reviewed_by"),       // Who approved this invoice [trace: human review invariant]
+    reviewedAt: text("reviewed_at"),       // When it was approved (ISO timestamp)
     createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
@@ -165,6 +167,23 @@ export const syncConfig = sqliteTable("sync_config", {
     lastAutoSyncResult: text("last_auto_sync_result"), // JSON: {synced: number, errors: string[]}
 });
 
+// [trace: comprehensive-prd.md §3.9 — extraction feedback loop]
+// Stores what the extraction engine proposed vs what the PM actually saved.
+// Used for: regex tuning, LLM few-shot examples, vendor auto-detection.
+export const extractionFeedback = sqliteTable("extraction_feedback", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    invoiceId: integer("invoice_id").references(() => invoices.id),
+    fileName: text("file_name").notNull(),
+    vendorDetected: text("vendor_detected"),       // What extraction thought the vendor was
+    vendorCorrected: text("vendor_corrected"),       // What PM saved (null = no correction)
+    providerName: text("provider_name").notNull(),   // "local-pdf-parse", "bedrock", etc.
+    extractedFields: text("extracted_fields").notNull(), // JSON: full extraction result
+    correctedFields: text("corrected_fields").notNull(), // JSON: what PM actually saved
+    overallConfidence: real("overall_confidence"),     // 0-1 score from extraction
+    hadCorrections: integer("had_corrections", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 // ============================================================
 // RELATIONS
 // ============================================================
@@ -201,6 +220,7 @@ export const invoicesRelations = relations(invoices, ({ one, many }) => ({
     project: one(projects, { fields: [invoices.projectId], references: [projects.id] }),
     contract: one(contracts, { fields: [invoices.contractId], references: [contracts.id] }),
     taskBreakdowns: many(invoiceTaskBreakdown),
+    extractionFeedbacks: many(extractionFeedback),
 }));
 
 export const invoiceTaskBreakdownRelations = relations(invoiceTaskBreakdown, ({ one }) => ({
@@ -217,4 +237,8 @@ export const rowParcelsRelations = relations(rowParcels, ({ one }) => ({
 
 export const projectPhasesRelations = relations(projectPhases, ({ one }) => ({
     project: one(projects, { fields: [projectPhases.projectId], references: [projects.id] }),
+}));
+
+export const extractionFeedbackRelations = relations(extractionFeedback, ({ one }) => ({
+    invoice: one(invoices, { fields: [extractionFeedback.invoiceId], references: [invoices.id] }),
 }));

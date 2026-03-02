@@ -3,6 +3,7 @@ import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate, formatPercent } from "../lib/format.js";
 import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
 import InvoiceDetailPanel from "./InvoiceDetailPanel.js";
+import { useViewMode } from "../lib/ViewModeContext.js";
 
 /**
  * Project detail page — tabbed view with budget, contracts, invoices, funding, ROW.
@@ -65,6 +66,7 @@ export default function ProjectDetail({
     const { data: project, isLoading, refetch } = trpc.projects.byId.useQuery({ id: projectId });
     const { data: alerts } = trpc.gutcheck.forProject.useQuery({ projectId });
     const { data: syncStatus, refetch: refetchSync } = trpc.sync.status.useQuery({ projectId });
+    const { isMvp } = useViewMode();
     const createInvoice = trpc.invoices.create.useMutation({ onSuccess: () => { refetch(); setShowInvoiceForm(false); } });
     const addSupplement = trpc.contracts.addSupplement.useMutation({ onSuccess: () => refetch() });
     const createFunding = trpc.fundingSources.create.useMutation({ onSuccess: () => refetch() });
@@ -174,7 +176,7 @@ export default function ProjectDetail({
         { key: "invoices", label: "Invoices", count: project.invoices.length },
         { key: "funding", label: "Funding Sources", count: project.fundingSources.length },
         { key: "parcels", label: "ROW Parcels", count: project.rowParcels.length },
-        ...(project.phases && project.phases.length > 0
+        ...((!isMvp && project.phases && project.phases.length > 0)
             ? [{ key: "phases" as Tab, label: "Phases", count: project.phases.length }]
             : []),
     ];
@@ -221,28 +223,32 @@ export default function ProjectDetail({
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* Sync status / Push to TaskLine */}
-                    {syncStatus?.linked ? (
+                    {/* Sync status / Push to TaskLine — Vision only */}
+                    {!isMvp && (
                         <>
-                            <a
-                                href={`http://localhost:3000/projects/${syncStatus.tasklineProjectId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
-                                title="Open in TaskLine"
-                            >
-                                🔗 TaskLine #{syncStatus.tasklineProjectId} ↗
-                            </a>
-                            <AutoSyncToggle projectId={projectId} onUpdate={() => refetch()} />
+                            {syncStatus?.linked ? (
+                                <>
+                                    <a
+                                        href={`http://localhost:3000/projects/${syncStatus.tasklineProjectId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                                        title="Open in TaskLine"
+                                    >
+                                        🔗 TaskLine #{syncStatus.tasklineProjectId} ↗
+                                    </a>
+                                    <AutoSyncToggle projectId={projectId} onUpdate={() => refetch()} />
+                                </>
+                            ) : (
+                                <button
+                                    onClick={() => pushToTaskline.mutate({ projectId })}
+                                    disabled={pushToTaskline.isPending}
+                                    className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                                >
+                                    {pushToTaskline.isPending ? "Pushing…" : "⬆ Push to TaskLine"}
+                                </button>
+                            )}
                         </>
-                    ) : (
-                        <button
-                            onClick={() => pushToTaskline.mutate({ projectId })}
-                            disabled={pushToTaskline.isPending}
-                            className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
-                        >
-                            {pushToTaskline.isPending ? "Pushing…" : "⬆ Push to TaskLine"}
-                        </button>
                     )}
                     <button
                         onClick={handleExport}

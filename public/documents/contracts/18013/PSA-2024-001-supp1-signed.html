@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplement #1 — PSA-2024-001</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; padding: 40px; color: #1e293b; }
+        .page { max-width: 800px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 48px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #7c3aed; }
+        .logo { font-size: 24px; font-weight: 700; color: #7c3aed; }
+        .logo small { display: block; font-size: 12px; color: #64748b; font-weight: 400; }
+        h1 { font-size: 24px; color: #1e293b; }
+        .badge { display: inline-block; background: #ede9fe; color: #7c3aed; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px; }
+        .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+        .meta-box { background: #f1f5f9; padding: 16px; border-radius: 8px; }
+        .meta-box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 8px; }
+        .detail { background: #faf5ff; border: 1px solid #e9d5ff; padding: 24px; border-radius: 8px; margin: 24px 0; }
+        .detail h3 { color: #7c3aed; font-size: 14px; margin-bottom: 12px; }
+        .amount-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .amount-row:last-child { border-bottom: none; font-weight: 700; font-size: 16px; }
+        .sig { margin-top: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .sig-line { border-top: 1px solid #94a3b8; padding-top: 8px; font-size: 12px; color: #64748b; }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72px; color: rgba(209, 213, 219, 0.3); font-weight: 900; pointer-events: none; }
+        .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center; }
+        @media print { body { padding: 0; background: white; } .page { border: none; box-shadow: none; } .watermark { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="watermark">DEMO</div>
+    <div class="page">
+        <div style="position:absolute;top:20px;right:20px;transform:rotate(-15deg);border:3px solid #7c3aed;color:#7c3aed;padding:8px 16px;font-size:18px;font-weight:bold;border-radius:8px;opacity:0.8;">EXECUTED</div>
+        <div class="header">
+            <div class="logo">
+                City of Lake Stevens
+                <small>Contract Amendment</small>
+            </div>
+            <div style="text-align:right;">
+                <h1>Supplement #1</h1>
+                <span class="badge">PSA-2024-001</span>
+            </div>
+        </div>
+        <div class="meta">
+            <div class="meta-box">
+                <h3>Consultant / Contractor</h3>
+                <p style="font-weight:600;">David Evans and Associates</p>
+            </div>
+            <div class="meta-box">
+                <h3>Project</h3>
+                <p style="font-weight:600;">Main Street Improvements</p>
+                <p style="font-size:13px;color:#64748b;">CFP #18013</p>
+            </div>
+        </div>
+        <div class="detail">
+            <h3>Amendment Details</h3>
+            <p style="margin-bottom:16px;color:#374151;">Additional survey scope — expanded topographic and boundary survey to include parcels adjacent to the project corridor for utility relocation planning.</p>
+            <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Effective Date: June 15, 2025</p>
+            <div class="amount-row"><span>Original Contract</span><span>$185,000</span></div>
+            <div class="amount-row"><span>This Supplement</span><span style="color:#7c3aed;">+ $25,000</span></div>
+        </div>
+        <div class="sig">
+            <div class="sig-line">City Representative</div>
+            <div class="sig-line">Consultant Representative</div>
+        </div>
+        <div class="footer">
+            This is a demo document for the Invoice Processing Coordinator MVP.<br>
+            In production, this would be the signed supplement PDF stored in SharePoint.
+        </div>
+    </div>
+</body>
+</html>

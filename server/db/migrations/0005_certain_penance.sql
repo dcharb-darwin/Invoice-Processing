@@ -1,0 +1,1 @@
+ALTER TABLE `row_parcels` ADD `document_url` text;

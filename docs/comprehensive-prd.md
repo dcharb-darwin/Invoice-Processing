@@ -449,6 +449,89 @@ Returns base64-encoded xlsx data with a suggested filename.
 
 ---
 
+### 3.8 MVP/Vision Toggle — Discovery-Grounded Feature Classification (cross-cutting pattern)
+
+**Source:** `src/lib/ViewModeContext.tsx`
+
+A top-level toggle in the app header switches between **MVP** (discovery Priority 1 core features) and **Vision** (full feature set including Priority 2/3 stretch goals). Default mode is MVP. Persists to `localStorage` key `"ipc-view-mode"`.
+
+[trace: `00-discovery-extraction.md` L214-234 — Daniel's priority tiers: Priority 1 (basic invoicing), Priority 2 (reporting/stretch), Priority 3 (uber-stretch/templates)]
+
+#### Feature Classification
+
+| Feature | Mode | Discovery Justification |
+|---------|------|------------------------|
+| Projects List | **MVP** | Eric: "one area where you can see all this information" [L243] |
+| Project Detail (Budget, Contracts, Invoices, Funding, ROW) | **MVP** | Priority 1 — the 80-90% invoice workflow [L22-36] |
+| Invoice Search | **MVP** | Shannon's primary lookup key for grant reimbursement [L469-476] |
+| Import (Eric + Shannon xlsx) | **MVP** | Migration strategy — PMs upload existing spreadsheets |
+| Export .xlsx | **MVP** | Safety net for SharePoint interop during transition |
+| Gut-Check Alerts | **MVP** | Shannon's manual "does that sound right?" [L31-32] |
+| Portfolio Dashboard | **Vision** | Priority 2 stretch — centralized reporting [L221-225] |
+| Invoice Pipeline | **Vision** | Priority 2 stretch — cross-project status board |
+| Grant Package | **Vision** | Priority 2 stretch — reimbursement package assembly |
+| TaskLine Sync (Push/Pull + Auto-Sync) | **Vision** | Priority 3 uber-stretch — TaskLine integration [L228-234] |
+| Phases Tab | **Vision** | Priority 3 uber-stretch — template-driven project lifecycle |
+
+#### Behavior
+
+- **MVP mode:** Nav shows Projects, Import, Invoice Search (3 items). Vision-only routes redirect to projects list. Project Detail hides TaskLine sync buttons and Phases tab.
+- **Vision mode:** Nav shows all 6 items. All features visible.
+- Toggle is a segmented pill: `MVP | Vision` with active state highlighted (blue/indigo).
+
+### 3.9 PDF Invoice Parsing — Provider-Agnostic Extraction Engine
+
+**Source:** `server/lib/extraction/`
+
+[trace: `00-discovery-extraction.md` L370-371 — Shannon's manual invoice transcription, `01-development-plan.md` L188 — PDF parsing future phase]
+
+Automates extraction of invoice data from PDF files, replacing manual transcription into spreadsheets. Uses a **pluggable provider architecture** — local text extraction (MVP), swappable to private GPU or AWS Bedrock models without application layer changes.
+
+#### Architecture: 3-Layer Provider Pattern
+
+1. **Ingestion Layer:** PDF upload via drag-and-drop, stored to `public/documents/invoices/{projectId}/`
+2. **Extraction Layer (pluggable):** `ExtractionProvider` interface with:
+   - `LocalProvider` — `pdf-parse` + regex patterns (MVP, zero API cost)
+   - `BedrockProvider` — AWS Bedrock Claude/Titan (future, requires IAM credentials)
+   - `PrivateGPUProvider` — self-hosted model with OpenAI-compatible API (future)
+3. **Transform + Review Layer:** Field normalization, confidence scoring, human review UI
+
+#### Provider Interface
+
+```typescript
+interface ExtractionProvider {
+  name: string;
+  extract(pdfBuffer: Buffer): Promise<RawExtraction>;
+  isAvailable(): Promise<boolean>;
+}
+```
+
+`RawExtraction` contains per-field confidence scores (`0.0–1.0`) and vendor-specific field mappings. Provider selection follows priority: PrivateGPU > Bedrock > Local.
+
+#### Vendor Templates
+
+Vendor-specific regex templates handle layout differences:
+
+| Vendor | Task Code Format | Amount Column | Date Format |
+|--------|-----------------|---------------|-------------|
+| David Evans | 001, 003, SUB01 | "Due This Invoice" | September 12, 2025 |
+| Shannon & Wilson | 100, 200, 700 | "Current" | 12/23/2025 |
+
+New vendor templates can be added without modifying core extraction logic.
+
+#### Human Review Flow (MANDATORY)
+
+Extracted data is NEVER auto-saved. The PM sees:
+- PDF on the left, pre-filled form on the right
+- Confidence badges per field: 🟢 High (≥ 0.85) / 🟡 Medium / 🔴 Low (< 0.5)
+- Editable fields before "Save & Create Invoice" commits to database
+
+#### Feature Classification: **MVP**
+
+PDF parsing is MVP because it directly eliminates the single highest-volume repetitive task described in discovery.
+
+---
+
 ## 4. API Reference
 
 All APIs are exposed via **tRPC** at `/api/trpc`. The server runs on port 3001 with CORS enabled. A health check endpoint exists at `GET /api/health`.
@@ -775,6 +858,17 @@ From `01-development-plan.md` — checked off based on implementation state.
 ---
 
 ## PRD Changelog
+
+### v1.3.0 — 2026-03-01
+- **PDF Invoice Parsing Engine** — Section 3.9 added. Provider-agnostic extraction architecture with pluggable backends (local pdf-parse for MVP, Bedrock/private GPU for future). Vendor-template system, per-field confidence scoring, mandatory human review flow.
+- New shared infrastructure: `server/lib/extraction/` directory with provider interface
+- Analyzed 2 real invoice PDFs (DEA-599518, SW-161983) to derive extraction patterns
+- Grant reimbursement package wiring scoped
+
+### v1.2.0 — 2026-03-01
+- **MVP/Vision toggle** — Section 3.8 added. Discovery-grounded feature classification with segmented pill toggle in header. MVP hides Portfolio Dashboard, Invoice Pipeline, Grant Package, TaskLine Sync, and Phases tab.
+- New shared infrastructure: `src/lib/ViewModeContext.tsx`
+- Version bumped to reflect MVP/Vision toggle addition
 
 ### v1.1.0 — 2026-02-26
 - **V2 features documented** — PortfolioDashboard, InvoicePipeline, GrantPackage now in acceptance criteria

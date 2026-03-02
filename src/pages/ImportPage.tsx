@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { trpc } from "../lib/trpc.js";
+import PdfExtractReview from "../components/PdfExtractReview.js";
 
 type ParserType = "eric" | "shannon";
 type ToastState = { type: "success" | "error"; message: string } | null;
+type ImportTab = "spreadsheet" | "pdf";
 
 function readFileAsBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -25,6 +27,7 @@ function readFileAsBase64(file: File): Promise<string> {
 }
 
 export default function ImportPage() {
+    const [tab, setTab] = useState<ImportTab>("pdf");
     const [file, setFile] = useState<File | null>(null);
     const [parser, setParser] = useState<ParserType>("eric");
     const [toast, setToast] = useState<ToastState>(null);
@@ -72,8 +75,8 @@ export default function ImportPage() {
             {toast && (
                 <div
                     className={`fixed top-20 right-6 z-50 rounded-xl border shadow-sm px-4 py-3 text-sm font-medium ${toast.type === "success"
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300"
-                            : "bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300"
+                        : "bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300"
                         }`}
                     role="status"
                     aria-live="polite"
@@ -82,103 +85,134 @@ export default function ImportPage() {
                 </div>
             )}
 
-            <h2 className="text-2xl font-bold mb-2">Import Spreadsheet</h2>
-            <p className="text-sm mb-6" style={{ color: "var(--color-text-secondary)" }}>
-                Upload an Excel workbook and choose the matching parser format.
+            <h2 className="text-2xl font-bold mb-2">Import Data</h2>
+            <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+                Import from a spreadsheet or extract invoice data from a PDF.
             </p>
 
-            <div
-                className="rounded-xl border shadow-sm p-6 md:p-8"
-                style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
-            >
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Workbook (.xlsx)</label>
-                        <input
-                            key={fileInputKey}
-                            type="file"
-                            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                            disabled={isImporting}
-                            className="block w-full text-sm border rounded-xl px-4 py-3 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-blue-700 file:font-medium hover:file:bg-blue-100 disabled:opacity-60"
-                            style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
-                        />
-                        {file && (
-                            <p className="mt-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
-                                Selected: {file.name}
-                            </p>
-                        )}
-                    </div>
-
-                    <fieldset>
-                        <legend className="text-sm font-medium mb-3">Parser</legend>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <label
-                                className={`rounded-xl border p-4 cursor-pointer transition-colors ${parser === "eric"
-                                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                                        : ""
-                                    }`}
-                                style={parser !== "eric" ? { borderColor: "var(--color-border)" } : undefined}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <input
-                                        type="radio"
-                                        name="parser"
-                                        value="eric"
-                                        checked={parser === "eric"}
-                                        onChange={() => setParser("eric")}
-                                        disabled={isImporting}
-                                        className="mt-1 accent-blue-600"
-                                    />
-                                    <div>
-                                        <div className="text-sm font-semibold">Eric</div>
-                                        <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                                            18013_Budget
-                                        </div>
-                                    </div>
-                                </div>
-                            </label>
-
-                            <label
-                                className={`rounded-xl border p-4 cursor-pointer transition-colors ${parser === "shannon"
-                                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                                        : ""
-                                    }`}
-                                style={parser !== "shannon" ? { borderColor: "var(--color-border)" } : undefined}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <input
-                                        type="radio"
-                                        name="parser"
-                                        value="shannon"
-                                        checked={parser === "shannon"}
-                                        onChange={() => setParser("shannon")}
-                                        disabled={isImporting}
-                                        className="mt-1 accent-blue-600"
-                                    />
-                                    <div>
-                                        <div className="text-sm font-semibold">Shannon</div>
-                                        <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                                            BTR Expense Tracking
-                                        </div>
-                                    </div>
-                                </div>
-                            </label>
-                        </div>
-                    </fieldset>
-
-                    <button
-                        type="submit"
-                        disabled={!file || isImporting}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl font-medium text-sm shadow-sm transition-colors"
-                    >
-                        {isImporting && (
-                            <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                        )}
-                        {isImporting ? "Importing..." : "Import File"}
-                    </button>
-                </form>
+            {/* Tab switcher */}
+            <div className="flex gap-1 mb-6 p-1 rounded-xl w-fit" style={{ backgroundColor: "var(--color-bg)" }}>
+                <button
+                    onClick={() => setTab("pdf")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "pdf"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                    style={tab !== "pdf" ? { color: "var(--color-text-secondary)" } : undefined}
+                >
+                    📄 PDF Invoice
+                </button>
+                <button
+                    onClick={() => setTab("spreadsheet")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "spreadsheet"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                    style={tab !== "spreadsheet" ? { color: "var(--color-text-secondary)" } : undefined}
+                >
+                    📊 Spreadsheet
+                </button>
             </div>
+
+            {/* PDF tab */}
+            {tab === "pdf" && <PdfExtractReview />}
+
+            {/* Spreadsheet tab */}
+            {tab === "spreadsheet" && (
+                <div
+                    className="rounded-xl border shadow-sm p-6 md:p-8"
+                    style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+                >
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Workbook (.xlsx)</label>
+                            <input
+                                key={fileInputKey}
+                                type="file"
+                                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                disabled={isImporting}
+                                className="block w-full text-sm border rounded-xl px-4 py-3 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-blue-700 file:font-medium hover:file:bg-blue-100 disabled:opacity-60"
+                                style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
+                            />
+                            {file && (
+                                <p className="mt-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                    Selected: {file.name}
+                                </p>
+                            )}
+                        </div>
+
+                        <fieldset>
+                            <legend className="text-sm font-medium mb-3">Parser</legend>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <label
+                                    className={`rounded-xl border p-4 cursor-pointer transition-colors ${parser === "eric"
+                                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                                        : ""
+                                        }`}
+                                    style={parser !== "eric" ? { borderColor: "var(--color-border)" } : undefined}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <input
+                                            type="radio"
+                                            name="parser"
+                                            value="eric"
+                                            checked={parser === "eric"}
+                                            onChange={() => setParser("eric")}
+                                            disabled={isImporting}
+                                            className="mt-1 accent-blue-600"
+                                        />
+                                        <div>
+                                            <div className="text-sm font-semibold">Eric</div>
+                                            <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                                18013_Budget
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label
+                                    className={`rounded-xl border p-4 cursor-pointer transition-colors ${parser === "shannon"
+                                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                                        : ""
+                                        }`}
+                                    style={parser !== "shannon" ? { borderColor: "var(--color-border)" } : undefined}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <input
+                                            type="radio"
+                                            name="parser"
+                                            value="shannon"
+                                            checked={parser === "shannon"}
+                                            onChange={() => setParser("shannon")}
+                                            disabled={isImporting}
+                                            className="mt-1 accent-blue-600"
+                                        />
+                                        <div>
+                                            <div className="text-sm font-semibold">Shannon</div>
+                                            <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                                BTR Expense Tracking
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <button
+                            type="submit"
+                            disabled={!file || isImporting}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl font-medium text-sm shadow-sm transition-colors"
+                        >
+                            {isImporting && (
+                                <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                            )}
+                            {isImporting ? "Importing..." : "Import File"}
+                        </button>
+                    </form>
+                </div>
+            )}
         </div>
     );
 }
+
