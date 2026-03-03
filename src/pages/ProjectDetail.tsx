@@ -200,7 +200,7 @@ export default function ProjectDetail({
                         </span>
                         <span
                             className="text-xs font-medium px-2 py-1 rounded"
-                            style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-text-muted)" }}
+                            style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-badge-text)" }}
                         >
                             {project.type} · {project.status}
                         </span>

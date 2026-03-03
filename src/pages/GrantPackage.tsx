@@ -171,7 +171,7 @@ export default function GrantPackage() {
                                                 <span
                                                     key={tbIdx}
                                                     className="text-[10px] px-1.5 py-0.5 rounded"
-                                                    style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-text-muted)" }}
+                                                    style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-badge-text)" }}
                                                 >
                                                     {tb.taskCode || tb.taskDescription}: {formatMoney(tb.amount)}
                                                 </span>

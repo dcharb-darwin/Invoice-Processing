@@ -24,6 +24,7 @@
   --color-text-muted: #94a3b8;
   --color-header-bg: #ffffff;
   --color-badge-bg: #f1f5f9;
+  --color-badge-text: #475569;
 }
 
 .dark {
@@ -37,6 +38,7 @@
   --color-text-muted: #64748b;
   --color-header-bg: #0f172a;
   --color-badge-bg: #334155;
+  --color-badge-text: #cbd5e1;
 }
 
 body {
@@ -53,8 +55,13 @@ body {
 }
 
 @keyframes flash-yellow {
-  0% { background-color: #fef08a; }
-  100% { background-color: transparent; }
+  0% {
+    background-color: #fef08a;
+  }
+
+  100% {
+    background-color: transparent;
+  }
 }
 
 .animate-flash-yellow {

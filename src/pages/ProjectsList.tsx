@@ -130,7 +130,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                     <div className="flex items-center gap-2">
                                         <span
                                             className="text-xs font-medium px-2 py-0.5 rounded"
-                                            style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-text-muted)" }}
+                                            style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-badge-text)" }}
                                         >
                                             {project.type || "—"}
                                         </span>
@@ -203,7 +203,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                         <span
                                             key={bli.id}
                                             className="text-[10px] px-1.5 py-0.5 rounded"
-                                            style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-text-muted)" }}
+                                            style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-badge-text)" }}
                                         >
                                             {bli.category}
                                         </span>

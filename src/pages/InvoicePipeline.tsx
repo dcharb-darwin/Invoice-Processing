@@ -116,7 +116,7 @@ export default function InvoicePipeline() {
                             <span className="text-sm font-semibold">{status}</span>
                             <span
                                 className="text-xs font-medium px-1.5 py-0.5 rounded-full"
-                                style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-text-muted)" }}
+                                style={{ backgroundColor: "var(--color-badge-bg)", color: "var(--color-badge-text)" }}
                             >
                                 {laneInvoices.length}
                             </span>
