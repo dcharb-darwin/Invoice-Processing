@@ -5,11 +5,39 @@ services:
     ports:
       - "5173:5173"
       - "3001:3001"
+    environment:
+      TASKLINE_URL: ${TASKLINE_URL:-http://taskline:3000}
+      IPC_URL: ${IPC_URL:-http://localhost:5173}
+      VITE_TASKLINE_APP_URL: ${VITE_TASKLINE_APP_URL:-http://localhost:3002}
+    depends_on:
+      taskline:
+        condition: service_started
+        required: false
     # If dev server is running on same ports, use:
     # - "5174:5173"
     # - "3002:3001"
     volumes:
       - data:/app/data
+  taskline:
+    profiles: ["fullstack"]
+    build:
+      context: ../dashboard-taskline
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    environment:
+      APP_PORT: 3000
+      DATABASE_URL: file:./data/taskline.db
+      JWT_SECRET: ${TASKLINE_JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      OAUTH_SERVER_URL: ${TASKLINE_OAUTH_SERVER_URL:-https://api.manus.im}
+      VITE_OAUTH_PORTAL_URL: ${TASKLINE_VITE_OAUTH_PORTAL_URL:-https://auth.manus.im}
+      VITE_APP_ID: ${TASKLINE_VITE_APP_ID:-rtc-project-manager}
+      OWNER_OPEN_ID: ${TASKLINE_OWNER_OPEN_ID:-admin}
+      OWNER_NAME: ${TASKLINE_OWNER_NAME:-Administrator}
+      SEED_ON_START: ${TASKLINE_SEED_ON_START:-false}
+    volumes:
+      - taskline_data:/app/data
 
 volumes:
   data:
+  taskline_data:

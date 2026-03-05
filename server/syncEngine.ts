@@ -1,6 +1,7 @@
 import { db } from "./db/index.js";
 import * as schema from "./db/schema.js";
 import { eq, isNotNull } from "drizzle-orm";
+import { IPC_URL, TASKLINE_TRPC } from "./lib/tasklineConfig.js";
 
 /**
  * Sync Engine — server-side polling engine for auto-sync.
@@ -8,10 +9,6 @@ import { eq, isNotNull } from "drizzle-orm";
  *
  * [trace: auto-sync PRD — polling-based auto-sync]
  */
-
-const TASKLINE_URL = process.env.TASKLINE_URL || "http://localhost:3000";
-const TASKLINE_TRPC = `${TASKLINE_URL}/api/trpc`;
-const IPC_URL = process.env.IPC_URL || "http://localhost:5173";
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let currentIntervalMs = 0;

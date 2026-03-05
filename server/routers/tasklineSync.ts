@@ -4,6 +4,7 @@ import * as schema from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { computeProjectBudget, syncPhaseBudgets } from "../syncEngine.js";
+import { IPC_URL, TASKLINE_TRPC, TASKLINE_URL } from "../lib/tasklineConfig.js";
 
 /**
  * TaskLine Sync Router — real bidirectional project sync between
@@ -16,9 +17,26 @@ import { computeProjectBudget, syncPhaseBudgets } from "../syncEngine.js";
  * [trace: 01-development-plan.md L245-249 — TaskLine API integration]
  */
 
-const TASKLINE_URL = process.env.TASKLINE_URL || "http://localhost:3000";
-const TASKLINE_TRPC = `${TASKLINE_URL}/api/trpc`;
-const IPC_URL = process.env.IPC_URL || "http://localhost:5173";
+type ProcedureKind = "query" | "mutation";
+type ProbeFailure = "unreachable" | "missing_procedure" | "unexpected";
+type ErrorClass = "unreachable" | "wrong_backend" | "contract_mismatch" | "unknown";
+
+type ProcedureCheck = {
+    procedure: string;
+    kind: ProcedureKind;
+    input?: Record<string, unknown>;
+};
+
+const REQUIRED_PROCEDURE_CHECKS: ProcedureCheck[] = [
+    { procedure: "projects.list", kind: "query" },
+    { procedure: "projects.getById", kind: "query", input: { id: -1 } },
+    { procedure: "projects.create", kind: "mutation", input: {} },
+    { procedure: "projects.update", kind: "mutation", input: {} },
+    { procedure: "templates.list", kind: "query" },
+    { procedure: "templates.create", kind: "mutation", input: {} },
+    { procedure: "tasks.listByProject", kind: "query", input: { projectId: -1 } },
+    { procedure: "tasks.update", kind: "mutation", input: {} },
+];
 
 // ---------------------------------------------------------------------------
 // TaskLine tRPC HTTP helpers
@@ -46,6 +64,141 @@ async function tasklineMutate<T>(procedure: string, input: Record<string, unknow
     }
     const json = await res.json() as any;
     return json.result?.data?.json ?? json.result?.data ?? json;
+}
+
+function parseErrorMessage(responseBody: string): string {
+    try {
+        const parsed = JSON.parse(responseBody);
+        return (
+            parsed?.error?.json?.message ||
+            parsed?.error?.message ||
+            responseBody.slice(0, 200)
+        );
+    } catch {
+        return responseBody.slice(0, 200);
+    }
+}
+
+async function probeTasklineProcedure(check: ProcedureCheck): Promise<{
+    procedure: string;
+    ok: boolean;
+    message?: string;
+    failure?: ProbeFailure;
+}> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    try {
+        let response: Response;
+
+        if (check.kind === "query") {
+            const url = check.input
+                ? `${TASKLINE_TRPC}/${check.procedure}?input=${encodeURIComponent(JSON.stringify({ json: check.input }))}`
+                : `${TASKLINE_TRPC}/${check.procedure}`;
+            response = await fetch(url, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+            });
+        } else {
+            response = await fetch(`${TASKLINE_TRPC}/${check.procedure}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ json: check.input ?? {} }),
+                signal: controller.signal,
+            });
+        }
+
+        const bodyText = await response.text();
+        const message = parseErrorMessage(bodyText);
+
+        if (response.ok) {
+            return {
+                procedure: check.procedure,
+                ok: true,
+            };
+        }
+
+        if (/No procedure found on path/i.test(message)) {
+            return {
+                procedure: check.procedure,
+                ok: false,
+                failure: "missing_procedure",
+                message,
+            };
+        }
+
+        if (
+            response.status === 400 ||
+            response.status === 422 ||
+            /validation|invalid|bad request|parse/i.test(message)
+        ) {
+            return {
+                procedure: check.procedure,
+                ok: true,
+                message: "Procedure reachable (validation failed as expected).",
+            };
+        }
+
+        return {
+            procedure: check.procedure,
+            ok: false,
+            failure: "unexpected",
+            message: `HTTP ${response.status}: ${message}`,
+        };
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.name === "AbortError"
+                    ? "Request timed out"
+                    : error.message
+                : "Unknown network error";
+        return {
+            procedure: check.procedure,
+            ok: false,
+            failure: "unreachable",
+            message,
+        };
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+function classifyConnectionError(
+    checks: Array<{ procedure: string; ok: boolean; failure?: ProbeFailure }>
+): ErrorClass {
+    const failed = checks.filter((c) => !c.ok);
+    if (failed.length === 0) return "unknown";
+    if (failed.some((c) => c.failure === "unreachable")) return "unreachable";
+
+    const failedNames = new Set(failed.map((f) => f.procedure));
+    const coreFailures =
+        failedNames.has("projects.list") &&
+        failedNames.has("templates.list") &&
+        failedNames.has("projects.getById");
+
+    if (coreFailures || failed.length >= Math.ceil(checks.length * 0.75)) {
+        return "wrong_backend";
+    }
+
+    if (failed.some((c) => c.failure === "missing_procedure")) {
+        return "contract_mismatch";
+    }
+
+    return "unknown";
+}
+
+function getConnectionMessage(errorClass: ErrorClass, failedProcedures: string[]): string {
+    if (errorClass === "unreachable") {
+        return `TaskLine is unreachable at ${TASKLINE_URL}. Ensure TaskLine is running and TASKLINE_URL is configured correctly.`;
+    }
+    if (errorClass === "wrong_backend") {
+        return `Endpoint ${TASKLINE_URL} is reachable but does not appear to be the TaskLine API. Verify port mapping and service target.`;
+    }
+    if (errorClass === "contract_mismatch") {
+        return `TaskLine is reachable, but required procedures are missing or incompatible: ${failedProcedures.join(", ")}.`;
+    }
+    return `TaskLine connectivity check failed unexpectedly for: ${failedProcedures.join(", ")}.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +246,48 @@ async function ensureCapitalTemplate(): Promise<number> {
 
 export const tasklineSyncRouter = router({
     /**
+     * Connectivity diagnostics for TaskLine integration.
+     * Used by UI guardrails to avoid silent fallbacks.
+     */
+    connectionStatus: publicProcedure.query(async () => {
+        const checks = await Promise.all(
+            REQUIRED_PROCEDURE_CHECKS.map(async (check) => probeTasklineProcedure(check))
+        );
+
+        const failedProcedures = checks.filter((c) => !c.ok).map((c) => c.procedure);
+        const ok = failedProcedures.length === 0;
+
+        if (ok) {
+            return {
+                ok: true,
+                tasklineUrl: TASKLINE_URL,
+                appUrl: IPC_URL,
+                checks: checks.map((c) => ({
+                    procedure: c.procedure,
+                    ok: c.ok,
+                    message: c.message,
+                })),
+                errorClass: null,
+                userMessage: "TaskLine connection looks healthy.",
+            };
+        }
+
+        const errorClass = classifyConnectionError(checks);
+        return {
+            ok: false,
+            tasklineUrl: TASKLINE_URL,
+            appUrl: IPC_URL,
+            checks: checks.map((c) => ({
+                procedure: c.procedure,
+                ok: c.ok,
+                message: c.message,
+            })),
+            errorClass,
+            userMessage: getConnectionMessage(errorClass, failedProcedures),
+        };
+    }),
+
+    /**
      * List available TaskLine projects that can be imported.
      * Calls real TaskLine API: projects.list
      */
@@ -123,6 +318,7 @@ export const tasklineSyncRouter = router({
             }));
         } catch (err: any) {
             console.error("[TaskLineSync] Failed to fetch TaskLine projects:", err.message);
+            console.error("[TaskLineSync] Run sync.connectionStatus for diagnostics.");
             return []; // Return empty if TaskLine is unreachable
         }
     }),

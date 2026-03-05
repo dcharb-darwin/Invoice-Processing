@@ -86,4 +86,20 @@ export const projectsRouter = router({
             const [project] = await db.insert(schema.projects).values(input).returning();
             return project;
         }),
+
+    // Delete a project (used by local smoke/test tooling cleanup)
+    delete: publicProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input }) => {
+            const [deleted] = await db
+                .delete(schema.projects)
+                .where(eq(schema.projects.id, input.id))
+                .returning();
+
+            if (!deleted) {
+                throw new Error(`Project ${input.id} not found`);
+            }
+
+            return { success: true };
+        }),
 });
