@@ -9,6 +9,7 @@ import InvoicePipeline from "./pages/InvoicePipeline.js";
 import GrantPackage from "./pages/GrantPackage.js";
 import ReconciliationHub from "./pages/ReconciliationHub.js";
 import AdminPanel from "./pages/AdminPanel.js";
+import { topNavButtonClass } from "./lib/navigationStyles.js";
 
 /**
  * Root app — hash-based routing, TaskLine-matching design.
@@ -132,11 +133,8 @@ function AppInner() {
                             <button
                                 key={item.route.page}
                                 onClick={() => navigate(item.route)}
-                                className={`px-3.5 py-1.5 text-sm rounded-lg font-medium transition-colors ${route.page === item.route.page
-                                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                                    : "hover:bg-gray-100 dark:hover:bg-slate-800"
-                                    }`}
-                                style={{ color: route.page === item.route.page ? undefined : "var(--color-text-secondary)" }}
+                                className={topNavButtonClass(route.page === item.route.page)}
+                                aria-current={route.page === item.route.page ? "page" : undefined}
                             >
                                 {item.icon} {item.label}
                             </button>

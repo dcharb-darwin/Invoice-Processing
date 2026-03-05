@@ -30,6 +30,21 @@ CREATE TABLE `contracts` (
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `extraction_feedback` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`invoice_id` integer,
+	`file_name` text NOT NULL,
+	`vendor_detected` text,
+	`vendor_corrected` text,
+	`provider_name` text NOT NULL,
+	`extracted_fields` text NOT NULL,
+	`corrected_fields` text NOT NULL,
+	`overall_confidence` real,
+	`had_corrections` integer DEFAULT false NOT NULL,
+	`created_at` text NOT NULL,
+	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `funding_sources` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`project_id` integer NOT NULL,
@@ -65,9 +80,21 @@ CREATE TABLE `invoices` (
 	`grant_code` text,
 	`source_pdf_path` text,
 	`signed_pdf_path` text,
+	`reviewed_by` text,
+	`reviewed_at` text,
 	`created_at` text NOT NULL,
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`contract_id`) REFERENCES `contracts`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `project_phases` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`project_id` integer NOT NULL,
+	`name` text NOT NULL,
+	`order` integer DEFAULT 0 NOT NULL,
+	`status` text DEFAULT 'Not Started',
+	`checklist` text,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `projects` (
@@ -82,6 +109,9 @@ CREATE TABLE `projects` (
 	`council_auth_date` text,
 	`budget_spreadsheet_path` text,
 	`taskline_project_id` integer,
+	`sync_direction` text,
+	`last_synced_at` text,
+	`auto_sync_enabled` integer,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL
 );
@@ -93,4 +123,13 @@ CREATE TABLE `row_parcels` (
 	`expenditure_type` text,
 	`amount` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `sync_config` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`mode` text DEFAULT 'manual' NOT NULL,
+	`interval_seconds` integer DEFAULT 60 NOT NULL,
+	`enabled` integer DEFAULT false NOT NULL,
+	`last_auto_sync_at` text,
+	`last_auto_sync_result` text
 );

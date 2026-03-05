@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    command: sh -c "npm run db:migrate && npm run dev"
     ports:
       - "5173:5173"
       - "3001:3001"

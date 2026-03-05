@@ -1,5 +1,6 @@
 import { formatMoney, formatDate } from "../lib/format.js";
-import { sourceLabel, signedLabel } from "../lib/sourceLabels.js";
+import StatusBadge from "../components/StatusBadge.js";
+import SourceDocLink from "../components/SourceDocLink.js";
 
 /**
  * Invoice Detail Panel — slide-in detail view with source drill-through.
@@ -46,15 +47,19 @@ export default function InvoiceDetailPanel({
 
             {/* Panel */}
             <div
-                className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-slide-in-right"
-                style={{ animation: "slideInRight 0.25s ease-out" }}
+                className="relative w-full max-w-2xl shadow-2xl overflow-y-auto animate-slide-in-right"
+                style={{ animation: "slideInRight 0.25s ease-out", backgroundColor: "var(--color-surface)" }}
             >
                 {/* Header */}
-                <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+                <div
+                    className="sticky top-0 z-10 border-b px-6 py-4 flex items-center justify-between"
+                    style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+                >
                     <div className="flex items-center gap-3">
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            className="transition-colors"
+                            style={{ color: "var(--color-text-muted)" }}
                             title="Close panel"
                         >
                             ← Back
@@ -64,7 +69,8 @@ export default function InvoiceDetailPanel({
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl transition-colors"
+                        className="text-xl transition-colors"
+                        style={{ color: "var(--color-text-muted)" }}
                     >
                         ✕
                     </button>
@@ -81,46 +87,37 @@ export default function InvoiceDetailPanel({
 
                     {/* Contract Link */}
                     {contract && (
-                        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Contract</p>
+                        <div className="rounded-lg border p-4" style={{ borderColor: "var(--color-border)" }}>
+                            <p className="text-xs font-medium mb-1" style={{ color: "var(--color-text-muted)" }}>Contract</p>
                             <button
                                 onClick={() => onNavigateToContract?.(contract.id)}
-                                className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1.5"
+                                className="text-sm font-semibold hover:underline flex items-center gap-1.5"
+                                style={{ color: "var(--color-primary)" }}
                             >
                                 {contract.vendor} — {contract.contractNumber || "No #"}
                                 <span className="text-xs">→</span>
                             </button>
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
                                 {contract.type} · {formatMoney(contract.originalAmount)}
                             </p>
                         </div>
                     )}
 
                     {/* Source Documents */}
-                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">Source Documents</p>
+                    <div className="rounded-lg border p-4" style={{ borderColor: "var(--color-border)" }}>
+                        <p className="text-xs font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>Source Documents</p>
                         <div className="flex gap-3">
                             {invoice.sourcePdfPath ? (
-                                <a
-                                    href={invoice.sourcePdfPath}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${sourceLabel(invoice.sourcePdfPath).className} border border-current/20 hover:opacity-80`}
-                                >
-                                    📄 Source Invoice
-                                </a>
+                                <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border border-current/20 hover:opacity-80">
+                                    <SourceDocLink path={invoice.sourcePdfPath} context="Source" />
+                                </span>
                             ) : (
-                                <span className="text-xs text-gray-400 italic">No source document attached</span>
+                                <span className="text-xs italic" style={{ color: "var(--color-text-muted)" }}>No source document attached</span>
                             )}
                             {invoice.signedPdfPath && (
-                                <a
-                                    href={invoice.signedPdfPath}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${signedLabel(invoice.signedPdfPath).className} border border-current/20 hover:opacity-80`}
-                                >
-                                    ✍️ Signed Copy
-                                </a>
+                                <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border border-current/20 hover:opacity-80">
+                                    <SourceDocLink path={invoice.signedPdfPath} context="Signed" />
+                                </span>
                             )}
                         </div>
                     </div>
@@ -137,18 +134,25 @@ export default function InvoiceDetailPanel({
 
                     {/* Task Breakdowns */}
                     {invoice.taskBreakdowns?.length > 0 && (
-                        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        <div className="rounded-lg border p-4" style={{ borderColor: "var(--color-border)" }}>
+                            <p className="text-xs font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>
                                 Task Breakdowns ({invoice.taskBreakdowns.length})
                             </p>
                             <div className="space-y-2">
                                 {invoice.taskBreakdowns.map((tb: any) => {
                                     const category = getBudgetCategory(tb.budgetLineItemId);
                                     return (
-                                        <div key={tb.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                        <div
+                                            key={tb.id}
+                                            className="flex items-center justify-between py-2 px-3 rounded-lg"
+                                            style={{ backgroundColor: "var(--color-bg)" }}
+                                        >
                                             <div className="flex items-center gap-2">
                                                 {tb.taskCode && (
-                                                    <span className="font-mono text-xs text-gray-500 bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                                                    <span
+                                                        className="font-mono text-xs px-1.5 py-0.5 rounded"
+                                                        style={{ color: "var(--color-text-muted)", backgroundColor: "var(--color-badge-bg)" }}
+                                                    >
                                                         {tb.taskCode}
                                                     </span>
                                                 )}
@@ -156,7 +160,8 @@ export default function InvoiceDetailPanel({
                                                 {category && onNavigateToBudget && (
                                                     <button
                                                         onClick={() => onNavigateToBudget(category)}
-                                                        className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline"
+                                                        className="text-xs hover:underline"
+                                                        style={{ color: "var(--color-primary)" }}
                                                         title={`View ${category} budget line`}
                                                     >
                                                         → {category}
@@ -172,7 +177,7 @@ export default function InvoiceDetailPanel({
                     )}
 
                     {/* Metadata */}
-                    <div className="text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1">
+                    <div className="text-xs pt-2 border-t space-y-1" style={{ color: "var(--color-text-muted)", borderColor: "var(--color-border-light)" }}>
                         <p>Invoice ID: {invoice.id}</p>
                         {invoice.createdAt && <p>Created: {new Date(invoice.createdAt).toLocaleString()}</p>}
                     </div>
@@ -190,28 +195,10 @@ export default function InvoiceDetailPanel({
     );
 }
 
-// ============================================================
-// Shared sub-components
-// ============================================================
-
-function StatusBadge({ status }: { status: string }) {
-    const colors: Record<string, string> = {
-        Received: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-        Approved: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-        Paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-        Rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    };
-    return (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors[status] || "bg-gray-100 text-gray-600"}`}>
-            {status}
-        </span>
-    );
-}
-
 function InfoBlock({ label, value, large }: { label: string; value: string; large?: boolean }) {
     return (
         <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
+            <p className="text-xs font-medium mb-0.5" style={{ color: "var(--color-text-muted)" }}>{label}</p>
             <p className={`font-semibold ${large ? "text-xl" : "text-sm"}`}>{value}</p>
         </div>
     );

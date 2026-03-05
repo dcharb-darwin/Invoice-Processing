@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate } from "../lib/format.js";
-import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
+import { INVOICE_STATUSES } from "../lib/invoiceStatus.js";
+import { projectHash, projectTabHash } from "../lib/routes.js";
+import StatusBadge from "../components/StatusBadge.js";
+import ModalShell from "../components/ModalShell.js";
+import SourceDocLink from "../components/SourceDocLink.js";
+import InvoiceDocumentLinks from "../components/InvoiceDocumentLinks.js";
+import EntityLink from "../components/EntityLink.js";
+import { docTabButtonClass } from "../lib/navigationStyles.js";
 
-const STATUSES = ["Received", "Logged", "Reviewed", "Signed", "Paid"] as const;
-
-const statusColors: Record<string, string> = {
-    Received: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
-    Logged: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    Reviewed: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-    Signed: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    Paid: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-};
+type ViewportMode = "windowed" | "maximized";
 
 export default function InvoicePipeline() {
     const utils = trpc.useUtils();
@@ -24,8 +23,9 @@ export default function InvoicePipeline() {
     const [editMode, setEditMode] = useState(false);
     const [editData, setEditData] = useState<Record<string, any>>({});
     const [docTab, setDocTab] = useState<"source" | "signed">("source");
+    const [viewportMode, setViewportMode] = useState<ViewportMode>("windowed");
 
-    const lanes = STATUSES.map((status) => ({
+    const lanes = INVOICE_STATUSES.map((status) => ({
         status,
         invoices: (invoices ?? []).filter((inv) => (inv.status ?? "Received") === status),
     }));
@@ -40,6 +40,25 @@ export default function InvoicePipeline() {
     const activeDocUrl = docTab === "signed" && hasSignedDoc
         ? selectedInvoice?.signedPdfPath
         : selectedInvoice?.sourcePdfPath || selectedInvoice?.signedPdfPath;
+    const isMaximized = viewportMode === "maximized";
+    const modalPanelStyle = isMaximized
+        ? {
+            width: "calc(100vw - 24px)",
+            maxWidth: "none",
+            height: "calc(100vh - 24px)",
+            maxHeight: "calc(100vh - 24px)",
+        }
+        : {
+            width: "90vw",
+            maxWidth: "1200px",
+            maxHeight: "85vh",
+        };
+
+    function closeModal() {
+        setSelectedInvoiceId(null);
+        setEditMode(false);
+        setViewportMode("windowed");
+    }
 
     function startEdit() {
         if (!selectedInvoice) return;
@@ -78,7 +97,7 @@ export default function InvoicePipeline() {
     // Escape key to close modal
     useEffect(() => {
         function handleKey(e: KeyboardEvent) {
-            if (e.key === "Escape") { setSelectedInvoiceId(null); setEditMode(false); }
+            if (e.key === "Escape") closeModal();
         }
         if (selectedInvoiceId) window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
@@ -133,9 +152,14 @@ export default function InvoicePipeline() {
                                 <div
                                     key={inv.id}
                                     onClick={() => {
-                                        setSelectedInvoiceId(selectedInvoiceId === inv.id ? null : inv.id);
+                                        if (selectedInvoiceId === inv.id) {
+                                            closeModal();
+                                            return;
+                                        }
+                                        setSelectedInvoiceId(inv.id);
                                         setEditMode(false);
                                         setDocTab("source");
+                                        setViewportMode("windowed");
                                     }}
                                     className={`rounded-lg shadow-sm p-3 text-sm border-l-[3px] cursor-pointer hover:shadow-md transition-all ${status === "Paid"
                                         ? "border-l-emerald-500"
@@ -164,31 +188,28 @@ export default function InvoicePipeline() {
 
             {/* Modal Overlay */}
             {selectedInvoice && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center"
-                    onClick={(e) => { if (e.target === e.currentTarget) { setSelectedInvoiceId(null); setEditMode(false); } }}
-                    style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
-                >
-                    <div
-                        className="rounded-xl border shadow-2xl overflow-hidden relative"
-                        style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", width: "90vw", maxWidth: "1200px", maxHeight: "85vh" }}
-                    >
+            <ModalShell
+                open={true}
+                onClose={closeModal}
+                panelClassName="rounded-xl border shadow-2xl overflow-hidden relative"
+                panelStyle={modalPanelStyle}
+                backdropClassName="fixed inset-0 z-50 flex items-center justify-center"
+                backdropStyle={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
+            >
                         {/* Panel header */}
                         <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
                             <div className="flex items-center gap-3">
                                 <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
                                     {selectedInvoice.invoiceNumber}
                                 </span>
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColors[selectedInvoice.status ?? "Received"]}`}>
-                                    {selectedInvoice.status}
-                                </span>
+                                <StatusBadge status={selectedInvoice.status ?? "Received"} />
                                 {(selectedInvoice as any).project && (
-                                    <a
-                                        href={`#/project/${selectedInvoice.projectId}/invoices`}
+                                    <EntityLink
+                                        href={projectTabHash(selectedInvoice.projectId, "invoices")}
                                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
                                     >
                                         📁 {(selectedInvoice as any).project.name}
-                                    </a>
+                                    </EntityLink>
                                 )}
                             </div>
                             <div className="flex items-center gap-2">
@@ -201,7 +222,19 @@ export default function InvoicePipeline() {
                                     </button>
                                 )}
                                 <button
-                                    onClick={() => { setSelectedInvoiceId(null); setEditMode(false); }}
+                                    onClick={() => setViewportMode(isMaximized ? "windowed" : "maximized")}
+                                    className="text-xs px-3 py-1 rounded-md font-medium border transition-colors"
+                                    style={{
+                                        borderColor: "var(--color-border)",
+                                        color: "var(--color-text-secondary)",
+                                        backgroundColor: "var(--color-surface)",
+                                    }}
+                                    aria-label={isMaximized ? "Restore popup size" : "Maximize popup size"}
+                                >
+                                    {isMaximized ? "Restore" : "Maximize"}
+                                </button>
+                                <button
+                                    onClick={closeModal}
                                     className="text-sm hover:text-red-500 transition-colors p-1"
                                     style={{ color: "var(--color-text-muted)" }}
                                 >
@@ -211,10 +244,22 @@ export default function InvoicePipeline() {
                         </div>
 
                         {/* Split-view body */}
-                        <div className="flex overflow-y-auto" style={{ minHeight: "420px", maxHeight: "calc(85vh - 52px)" }}>
+                        <div
+                            className="flex overflow-y-auto"
+                            style={{
+                                minHeight: isMaximized ? "calc(100vh - 148px)" : "420px",
+                                maxHeight: isMaximized ? "calc(100vh - 110px)" : "calc(85vh - 52px)",
+                            }}
+                        >
 
                             {/* Left panel — details / edit */}
-                            <div className={`p-5 space-y-4 overflow-y-auto ${hasAnyDoc ? "w-1/2 border-r" : "w-full"}`} style={{ borderColor: "var(--color-border)", maxHeight: "520px" }}>
+                            <div
+                                className={`p-5 space-y-4 overflow-y-auto ${hasAnyDoc ? "w-1/2 border-r" : "w-full"}`}
+                                style={{
+                                    borderColor: "var(--color-border)",
+                                    maxHeight: isMaximized ? "calc(100vh - 165px)" : "520px",
+                                }}
+                            >
 
                                 {/* Project & contract context */}
                                 <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
@@ -222,9 +267,9 @@ export default function InvoicePipeline() {
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div>
                                             <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>Project</p>
-                                            <a href={`#/project/${selectedInvoice.projectId}`} className="font-medium text-blue-700 dark:text-blue-300 hover:underline text-xs">
+                                            <EntityLink href={projectHash(selectedInvoice.projectId)} className="font-medium text-blue-700 dark:text-blue-300 hover:underline text-xs">
                                                 {(selectedInvoice as any).project?.name || `Project #${selectedInvoice.projectId}`}
-                                            </a>
+                                            </EntityLink>
                                         </div>
                                         {(selectedInvoice as any).project?.cfpNumber && (
                                             <div>
@@ -241,14 +286,14 @@ export default function InvoicePipeline() {
                                                 <div>
                                                     <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>Contract #</p>
                                                     <p className="text-xs">
-                                                        <a href={`#/project/${selectedInvoice.projectId}/contracts`} className="font-mono text-blue-700 dark:text-blue-300 hover:underline">
+                                                        <EntityLink href={projectTabHash(selectedInvoice.projectId, "contracts")} className="font-mono text-blue-700 dark:text-blue-300 hover:underline">
                                                             {(selectedInvoice as any).contract.contractNumber || "—"}
-                                                        </a>
+                                                        </EntityLink>
                                                         {" · "}{(selectedInvoice as any).contract.type}
                                                         {(selectedInvoice as any).contract.signedDocumentLink && (
                                                             <>
                                                                 {" · "}
-                                                                <a href={(selectedInvoice as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className={`text-xs ${contractLabel((selectedInvoice as any).contract.signedDocumentLink).className}`}>{contractLabel((selectedInvoice as any).contract.signedDocumentLink).text}</a>
+                                                                <SourceDocLink path={(selectedInvoice as any).contract.signedDocumentLink} context="Contract" />
                                                             </>
                                                         )}
                                                     </p>
@@ -292,7 +337,7 @@ export default function InvoicePipeline() {
                                                 <label className="text-[11px] font-medium" style={{ color: "var(--color-text-muted)" }}>Status</label>
                                                 <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                                                     className="w-full mt-0.5 px-2 py-1.5 text-xs rounded-md border" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
-                                                    {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                                                    {INVOICE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                                                 </select>
                                             </div>
                                             <div>
@@ -347,14 +392,10 @@ export default function InvoicePipeline() {
                                         {(selectedInvoice.sourcePdfPath || selectedInvoice.signedPdfPath) && (
                                             <div className="text-sm">
                                                 <p className="text-[11px] mb-1" style={{ color: "var(--color-text-muted)" }}>Documents</p>
-                                                <p className="flex items-center gap-2">
-                                                    {selectedInvoice.sourcePdfPath && (
-                                                        <a href={selectedInvoice.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${sourceLabel(selectedInvoice.sourcePdfPath).className}`}>{sourceLabel(selectedInvoice.sourcePdfPath).text}</a>
-                                                    )}
-                                                    {selectedInvoice.signedPdfPath && (
-                                                        <a href={selectedInvoice.signedPdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${signedLabel(selectedInvoice.signedPdfPath).className}`}>{signedLabel(selectedInvoice.signedPdfPath).text}</a>
-                                                    )}
-                                                </p>
+                                                <InvoiceDocumentLinks
+                                                    sourcePdfPath={selectedInvoice.sourcePdfPath}
+                                                    signedPdfPath={selectedInvoice.signedPdfPath}
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -378,24 +419,25 @@ export default function InvoicePipeline() {
 
                                 {/* Go to project link */}
                                 <div className="pt-2 border-t" style={{ borderColor: "var(--color-border-light)" }}>
-                                    <a
-                                        href={`#/project/${selectedInvoice.projectId}/invoices`}
+                                    <EntityLink
+                                        href={projectTabHash(selectedInvoice.projectId, "invoices")}
                                         className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                                     >
                                         Go to Project →
-                                    </a>
+                                    </EntityLink>
                                 </div>
                             </div>
 
                             {/* Right panel — document viewer (only if source doc exists) */}
                             {hasAnyDoc && (
-                                <div className="w-1/2 flex flex-col" style={{ minHeight: "420px" }}>
+                                <div className="w-1/2 flex flex-col" style={{ minHeight: isMaximized ? "calc(100vh - 148px)" : "420px" }}>
                                     {/* Doc tab toggles */}
                                     <div className="flex gap-1 px-3 py-2 border-b" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
                                         {hasSourceDoc && (
                                             <button
                                                 onClick={() => setDocTab("source")}
-                                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${docTab === "source" ? "bg-blue-600 text-white" : "hover:bg-gray-100 dark:hover:bg-slate-700"}`}
+                                                className={docTabButtonClass(docTab === "source")}
+                                                aria-pressed={docTab === "source"}
                                             >
                                                 📄 Source
                                             </button>
@@ -403,7 +445,8 @@ export default function InvoicePipeline() {
                                         {hasSignedDoc && (
                                             <button
                                                 onClick={() => setDocTab("signed")}
-                                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${docTab === "signed" ? "bg-blue-600 text-white" : "hover:bg-gray-100 dark:hover:bg-slate-700"}`}
+                                                className={docTabButtonClass(docTab === "signed")}
+                                                aria-pressed={docTab === "signed"}
                                             >
                                                 ✅ Signed
                                             </button>
@@ -426,8 +469,7 @@ export default function InvoicePipeline() {
                                 </div>
                             )}
                         </div>
-                    </div>
-                </div>
+            </ModalShell>
             )}
         </div>
     );

@@ -38,3 +38,17 @@
 **Decision:** Invoice app uses same design language as TaskLine: light-mode default, dark mode toggle, blue-600 accent.
 **Rationale:** Separate apps but should feel like the same platform. User explicitly requested visual parity.
 **Implementation:** CSS custom properties as design tokens, Tailwind classes for layout.
+
+## DEC-006: Shared UI Primitive Standardization
+
+**Date:** 2026-03-05
+**Decision:** Consolidate duplicated status badge, modal shell, entity/source link, and hash route patterns into shared frontend primitives.
+**Rationale:** Cross-surface drift was recurring across InvoiceSearch, InvoicePipeline, GrantPackage, and ProjectDetail. Shared infrastructure preserves TaskLine parity while reducing duplication risk.
+**Implementation:** `src/components/StatusBadge.tsx`, `src/components/ModalShell.tsx`, `src/components/EntityLink.tsx`, `src/components/SourceDocLink.tsx`, `src/components/InvoiceDocumentLinks.tsx`, `src/lib/routes.ts`, `src/lib/invoiceStatus.ts`.
+
+## DEC-007: Token-First Modal/Panel Styling
+
+**Date:** 2026-03-05
+**Decision:** Replace per-file hardcoded gray/indigo modal/panel styling with design-token-driven surfaces and borders.
+**Rationale:** Shared structural primitives alone did not eliminate visual drift; token usage in divergent modals/panels keeps light/dark parity and simplifies cross-surface consistency audits.
+**Implementation:** `src/pages/NewProjectModal.tsx`, `src/pages/SyncSettings.tsx`, `src/pages/InvoiceDetailPanel.tsx`.

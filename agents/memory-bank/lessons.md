@@ -43,3 +43,12 @@
 - `gutcheck-engine` — implemented in `server/routers/gutcheck.ts` (thresholds: BLI +15%/+30%, project 85%/95%)
 - `budget-auto-generator` — implemented in `server/routers/contracts.ts` (auto-generates line items from contract type)
 - Both skills referenced in SKILL.md, logic translated to tRPC procedures
+
+## Session 3 — Legacy Cleanup + UI/UX Consistency (2026-03-05)
+
+- PRD metadata can drift from changelog/history; keep `docs/comprehensive-prd.md` header version/date synchronized with latest changelog entry.
+- Migration chain references in governance artifacts can become stale even when build succeeds; reconcile `module-registry.json` to the active migration tag in `server/db/migrations/meta/_journal.json`.
+- Shared UI primitives (status badge, modal shell, route helper, source/entity links) reduce multi-page drift quickly and are safer than large visual rewrites for parity-focused cleanup.
+- `scripts/generate-demo-docs.ts` should be exposed via npm scripts to avoid utility ownership ambiguity.
+- PRD section naming in governance metadata should match exact heading titles (`Import/Export Specification`) to keep anti-drift checks deterministic.
+- Reviewer/anti-drift checks should explicitly call out historical commits without `[trace:]` tags as a pre-merge governance risk.

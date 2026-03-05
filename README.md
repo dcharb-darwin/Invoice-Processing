@@ -49,6 +49,9 @@ npm install
 npm run db:migrate
 npm run db:seed
 
+# Optional: regenerate demo source documents under public/documents
+npm run docs:generate-demo
+
 # Start dev servers (frontend on :5173, API on :3001)
 npm run dev
 ```
