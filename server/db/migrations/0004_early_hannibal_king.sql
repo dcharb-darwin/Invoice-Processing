@@ -1,1 +1,0 @@
-ALTER TABLE `funding_sources` ADD `document_url` text;

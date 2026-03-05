@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
-  "lastUpdated": "2026-02-26T15:33",
+  "version": "1.4.0",
+  "lastUpdated": "2026-03-05T11:20",
   "modules": {
     "data-foundation": {
       "status": "complete",
@@ -10,7 +10,7 @@
         "server/db/index.ts",
         "server/db/seed.ts",
         "server/db/migrate.ts",
-        "server/db/migrations/0000_flawless_yellowjacket.sql",
+        "server/db/migrations/0000_grey_oracle.sql",
         "drizzle.config.ts"
       ],
       "prdSections": [
@@ -59,9 +59,17 @@
         "src/index.css",
         "src/lib/trpc.ts",
         "src/lib/format.ts",
+        "src/lib/routes.ts",
+        "src/lib/invoiceStatus.ts",
         "src/lib/sourceLabels.ts",
+        "src/components/StatusBadge.tsx",
+        "src/components/ModalShell.tsx",
+        "src/components/EntityLink.tsx",
+        "src/components/SourceDocLink.tsx",
+        "src/components/InvoiceDocumentLinks.tsx",
         "src/pages/ProjectsList.tsx",
         "src/pages/ProjectDetail.tsx",
+        "src/pages/projectDetail/PhasesTab.tsx",
         "src/pages/InvoiceSearch.tsx",
         "src/pages/ImportPage.tsx",
         "index.html"
@@ -86,7 +94,7 @@
         "src/pages/ImportPage.tsx"
       ],
       "prdSections": [
-        "Import/Export Standard"
+        "Import/Export Specification"
       ],
       "dependencies": [
         "data-foundation"
@@ -140,13 +148,57 @@
         "docs/discovery/01-development-plan.md",
         "docs/discovery/02-taskline-gen2-suggestions.md",
         "docs/discovery/AgenticSetup.md",
-        "docs/discovery/discovery-session-transcript.txt"
+        "docs/discovery/discovery-session-transcript.txt",
+        "docs/prd-package/legacy-cleanup-prd.md",
+        "docs/prd-package/ui-ux-consistency-prd.md"
       ],
       "prdSections": [
         "ALL"
       ],
       "dependencies": [],
       "completedBy": "Antigravity"
+    },
+    "cleanup-uiux-consistency": {
+      "status": "complete",
+      "owner": "PlannerAgent + DocumentationAgent + FrontendAgent",
+      "files": [
+        "docs/prd-package/legacy-cleanup-prd.md",
+        "docs/prd-package/ui-ux-consistency-prd.md",
+        "docs/comprehensive-prd.md",
+        "agents/memory-bank/current-state.md",
+        "agents/memory-bank/module-registry.json",
+        "agents/memory-bank/lessons.md",
+        "agents/memory-bank/decisions.md",
+        "README.md",
+        "package.json",
+        "src/lib/routes.ts",
+        "src/lib/invoiceStatus.ts",
+        "src/components/StatusBadge.tsx",
+        "src/components/ModalShell.tsx",
+        "src/components/EntityLink.tsx",
+        "src/components/SourceDocLink.tsx",
+        "src/components/InvoiceDocumentLinks.tsx",
+        "src/pages/ProjectsList.tsx",
+        "src/pages/NewProjectModal.tsx",
+        "src/pages/SyncSettings.tsx",
+        "src/pages/ProjectDetail.tsx",
+        "src/pages/projectDetail/PhasesTab.tsx",
+        "src/pages/InvoiceSearch.tsx",
+        "src/pages/InvoicePipeline.tsx",
+        "src/pages/GrantPackage.tsx",
+        "src/pages/InvoiceDetailPanel.tsx"
+      ],
+      "prdSections": [
+        "Features & Flows",
+        "Prototype Limitations",
+        "PRD Changelog"
+      ],
+      "dependencies": [
+        "documentation",
+        "user-interactions"
+      ],
+      "completedBy": "Codex",
+      "notes": "PRD-first legacy cleanup + UX consistency pass; shared status/modal/link primitives introduced."
     }
   }
 }

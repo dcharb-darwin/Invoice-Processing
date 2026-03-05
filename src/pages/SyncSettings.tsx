@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
+import ModalShell from "../components/ModalShell.js";
 
 /**
  * Sync Settings modal — configure auto-sync between TaskLine and IPC.
@@ -19,6 +20,7 @@ const INTERVALS = [
     { value: 300, label: "5 minutes" },
     { value: 900, label: "15 minutes" },
 ];
+type SyncMode = (typeof SYNC_MODES)[number]["value"];
 
 export default function SyncSettings({
     open,
@@ -30,7 +32,7 @@ export default function SyncSettings({
     const { data: config, refetch } = trpc.syncConfig.get.useQuery(undefined, { enabled: open });
     const updateConfig = trpc.syncConfig.set.useMutation({ onSuccess: () => refetch() });
 
-    const [localMode, setLocalMode] = useState<string | null>(null);
+    const [localMode, setLocalMode] = useState<SyncMode | null>(null);
     const [localInterval, setLocalInterval] = useState<number | null>(null);
     const [localEnabled, setLocalEnabled] = useState<boolean | null>(null);
 
@@ -46,7 +48,7 @@ export default function SyncSettings({
 
     const handleSave = () => {
         updateConfig.mutate({
-            mode: mode as any,
+            mode,
             intervalSeconds: interval,
             enabled,
         });
@@ -55,23 +57,25 @@ export default function SyncSettings({
         setLocalEnabled(null);
     };
 
-    if (!open) return null;
-
     const lastResult = config?.lastAutoSyncResult ? JSON.parse(config.lastAutoSyncResult) : null;
+    const labelStyle = { color: "var(--color-text-secondary)" };
+    const helperStyle = { color: "var(--color-text-muted)" };
+    const inputStyle = {
+        backgroundColor: "var(--color-surface)",
+        borderColor: "var(--color-border)",
+        color: "var(--color-text)",
+    };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            onClick={(e) => e.target === e.currentTarget && onClose()}
+        <ModalShell
+            open={open}
+            onClose={onClose}
+            panelClassName="rounded-2xl shadow-2xl max-w-lg w-full mx-4"
         >
-            <div
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4"
-                onClick={(e) => e.stopPropagation()}
-            >
                 {/* Header */}
-                <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+                <div className="px-6 py-4 rounded-t-2xl flex items-center justify-between border-b" style={{ borderColor: "var(--color-border)" }}>
                     <h2 className="text-lg font-bold">⚙️ Sync Settings</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                    <button onClick={onClose} className="text-xl hover:text-red-500" style={{ color: "var(--color-text-muted)" }}>✕</button>
                 </div>
 
                 <div className="px-6 py-5 space-y-5">
@@ -79,12 +83,12 @@ export default function SyncSettings({
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="font-medium text-sm">Auto-Sync</p>
-                            <p className="text-xs text-gray-500">Enable automatic synchronization</p>
+                            <p className="text-xs" style={helperStyle}>Enable automatic synchronization</p>
                         </div>
                         <button
                             onClick={() => setLocalEnabled(!enabled)}
-                            className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
-                                }`}
+                            className="relative w-11 h-6 rounded-full transition-colors"
+                            style={{ backgroundColor: enabled ? "var(--color-primary)" : "var(--color-border)" }}
                         >
                             <span
                                 className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? "translate-x-5" : ""
@@ -95,20 +99,20 @@ export default function SyncSettings({
 
                     {/* Mode selector */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Sync Mode</label>
+                        <label className="block text-sm font-medium mb-2" style={labelStyle}>Sync Mode</label>
                         <div className="space-y-2">
                             {SYNC_MODES.map((m) => (
                                 <button
                                     key={m.value}
                                     onClick={() => setLocalMode(m.value)}
-                                    className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all ${mode === m.value
-                                            ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-600"
-                                            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                                        } ${!enabled && m.value !== "manual" ? "opacity-40" : ""}`}
+                                    className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all ${!enabled && m.value !== "manual" ? "opacity-40" : ""}`}
+                                    style={mode === m.value
+                                        ? { backgroundColor: "var(--color-badge-bg)", borderColor: "var(--color-primary)" }
+                                        : { backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
                                     disabled={!enabled && m.value !== "manual"}
                                 >
                                     <span className="font-medium">{m.label}</span>
-                                    <span className="block text-xs text-gray-500 mt-0.5">{m.desc}</span>
+                                    <span className="block text-xs mt-0.5" style={helperStyle}>{m.desc}</span>
                                 </button>
                             ))}
                         </div>
@@ -117,11 +121,12 @@ export default function SyncSettings({
                     {/* Interval selector */}
                     {enabled && mode !== "manual" && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Poll Interval</label>
+                            <label className="block text-sm font-medium mb-1" style={labelStyle}>Poll Interval</label>
                             <select
                                 value={interval}
                                 onChange={(e) => setLocalInterval(Number(e.target.value))}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                style={inputStyle}
                             >
                                 {INTERVALS.map((i) => (
                                     <option key={i.value} value={i.value}>{i.label}</option>
@@ -132,7 +137,10 @@ export default function SyncSettings({
 
                     {/* Last sync info */}
                     {config?.lastAutoSyncAt && (
-                        <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-xs space-y-1">
+                        <div
+                            className="rounded-lg p-3 text-xs space-y-1 border"
+                            style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-border-light)" }}
+                        >
                             <p><span className="font-medium">Last auto-sync:</span> {new Date(config.lastAutoSyncAt).toLocaleString()}</p>
                             {lastResult && (
                                 <p>
@@ -146,22 +154,23 @@ export default function SyncSettings({
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-2xl flex justify-end gap-3">
+                <div className="px-6 py-4 rounded-b-2xl flex justify-end gap-3 border-t" style={{ borderColor: "var(--color-border)" }}>
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
+                        style={{ borderColor: "var(--color-border)", color: "var(--color-text)", backgroundColor: "var(--color-surface)" }}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={!hasChanges || updateConfig.isPending}
-                        className="px-5 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                        className="px-5 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition-opacity disabled:opacity-50"
+                        style={{ backgroundColor: "var(--color-primary)" }}
                     >
                         {updateConfig.isPending ? "Saving…" : "Save Settings"}
                     </button>
                 </div>
-            </div>
-        </div>
+        </ModalShell>
     );
 }
