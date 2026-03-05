@@ -37,7 +37,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
         e.stopPropagation();
         setExportingId(projectId);
         try {
-            const data = await utils.export.projectToXlsx.fetch({ projectId });
+            const data = await utils.spreadsheetSync.exportUnified.fetch({ projectId });
             const byteCharacters = atob(data.base64);
             const byteArray = new Uint8Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {

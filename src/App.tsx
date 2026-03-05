@@ -7,6 +7,7 @@ import InvoiceSearch from "./pages/InvoiceSearch.js";
 import ImportPage from "./pages/ImportPage.js";
 import InvoicePipeline from "./pages/InvoicePipeline.js";
 import GrantPackage from "./pages/GrantPackage.js";
+import ReconciliationHub from "./pages/ReconciliationHub.js";
 import { topNavButtonClass } from "./lib/navigationStyles.js";
 
 /**
@@ -20,6 +21,7 @@ type Route =
     | { page: "project"; id: number; tab?: string }
     | { page: "search" }
     | { page: "import" }
+    | { page: "reconciliation" }
     | { page: "pipeline" }
     | { page: "grants" };
 
@@ -34,6 +36,7 @@ function parseHash(): Route {
     if (hash === "/portfolio") return { page: "portfolio" };
     if (hash === "/search") return { page: "search" };
     if (hash === "/import") return { page: "import" };
+    if (hash === "/reconciliation") return { page: "reconciliation" };
     if (hash === "/pipeline") return { page: "pipeline" };
     if (hash === "/grants") return { page: "grants" };
     return { page: "projects" };
@@ -77,6 +80,7 @@ function AppInner() {
         else if (r.page === "project") window.location.hash = `/project/${r.id}${r.tab ? `/${r.tab}` : ""}`;
         else if (r.page === "search") window.location.hash = "/search";
         else if (r.page === "import") window.location.hash = "/import";
+        else if (r.page === "reconciliation") window.location.hash = "/reconciliation";
         else if (r.page === "pipeline") window.location.hash = "/pipeline";
         else if (r.page === "grants") window.location.hash = "/grants";
         setRoute(r);
@@ -86,6 +90,7 @@ function AppInner() {
         { label: "Portfolio", icon: "📊", route: { page: "portfolio" } as Route, visionOnly: true },
         { label: "Projects", icon: "🏗️", route: { page: "projects" } as Route, visionOnly: false },
         { label: "Import", icon: "📥", route: { page: "import" } as Route, visionOnly: false },
+        { label: "Reconcile", icon: "🧾", route: { page: "reconciliation" } as Route, visionOnly: false },
         { label: "Invoice Search", icon: "🔍", route: { page: "search" } as Route, visionOnly: false },
         { label: "Pipeline", icon: "📋", route: { page: "pipeline" } as Route, visionOnly: true },
         { label: "Grants", icon: "💰", route: { page: "grants" } as Route, visionOnly: true },
@@ -197,6 +202,9 @@ function AppInner() {
                 )}
                 {route.page === "import" && (
                     <ImportPage />
+                )}
+                {route.page === "reconciliation" && (
+                    <ReconciliationHub />
                 )}
                 {route.page === "pipeline" && (
                     <InvoicePipeline />
