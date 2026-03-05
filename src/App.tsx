@@ -7,6 +7,8 @@ import InvoiceSearch from "./pages/InvoiceSearch.js";
 import ImportPage from "./pages/ImportPage.js";
 import InvoicePipeline from "./pages/InvoicePipeline.js";
 import GrantPackage from "./pages/GrantPackage.js";
+import ReconciliationHub from "./pages/ReconciliationHub.js";
+import AdminPanel from "./pages/AdminPanel.js";
 
 /**
  * Root app — hash-based routing, TaskLine-matching design.
@@ -20,7 +22,9 @@ type Route =
     | { page: "search" }
     | { page: "import" }
     | { page: "pipeline" }
-    | { page: "grants" };
+    | { page: "grants" }
+    | { page: "reconciliation" }
+    | { page: "admin" };
 
 function parseHash(): Route {
     const hash = window.location.hash.slice(1);
@@ -35,6 +39,8 @@ function parseHash(): Route {
     if (hash === "/import") return { page: "import" };
     if (hash === "/pipeline") return { page: "pipeline" };
     if (hash === "/grants") return { page: "grants" };
+    if (hash === "/reconciliation") return { page: "reconciliation" };
+    if (hash === "/admin") return { page: "admin" };
     return { page: "projects" };
 }
 
@@ -45,7 +51,7 @@ function AppInner() {
     const { viewMode, setViewMode, isMvp } = useViewMode();
 
     // Vision-only pages — redirect to projects in MVP mode
-    const VISION_PAGES = new Set(["portfolio", "pipeline", "grants"]);
+    const VISION_PAGES = new Set(["portfolio", "pipeline", "grants", "reconciliation", "admin"]);
 
     useEffect(() => {
         if (isMvp && VISION_PAGES.has(route.page)) {
@@ -78,6 +84,8 @@ function AppInner() {
         else if (r.page === "import") window.location.hash = "/import";
         else if (r.page === "pipeline") window.location.hash = "/pipeline";
         else if (r.page === "grants") window.location.hash = "/grants";
+        else if (r.page === "reconciliation") window.location.hash = "/reconciliation";
+        else if (r.page === "admin") window.location.hash = "/admin";
         setRoute(r);
     };
 
@@ -88,6 +96,8 @@ function AppInner() {
         { label: "Invoice Search", icon: "🔍", route: { page: "search" } as Route, visionOnly: false },
         { label: "Pipeline", icon: "📋", route: { page: "pipeline" } as Route, visionOnly: true },
         { label: "Grants", icon: "💰", route: { page: "grants" } as Route, visionOnly: true },
+        { label: "Reconciliation", icon: "🧾", route: { page: "reconciliation" } as Route, visionOnly: true },
+        { label: "Admin", icon: "⚙️", route: { page: "admin" } as Route, visionOnly: true },
     ];
     const navItems = allNavItems.filter(item => !isMvp || !item.visionOnly);
 
@@ -205,6 +215,12 @@ function AppInner() {
                 )}
                 {route.page === "grants" && (
                     <GrantPackage />
+                )}
+                {route.page === "reconciliation" && (
+                    <ReconciliationHub />
+                )}
+                {route.page === "admin" && (
+                    <AdminPanel />
                 )}
             </main>
         </div>

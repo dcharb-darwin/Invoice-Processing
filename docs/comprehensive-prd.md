@@ -470,13 +470,15 @@ A top-level toggle in the app header switches between **MVP** (discovery Priorit
 | Portfolio Dashboard | **Vision** | Priority 2 stretch — centralized reporting [L221-225] |
 | Invoice Pipeline | **Vision** | Priority 2 stretch — cross-project status board |
 | Grant Package | **Vision** | Priority 2 stretch — reimbursement package assembly |
+| Reconciliation Hub | **Vision** | Finance delta/reconciliation is not part of Priority 1 invoice flow |
+| Admin Source Configuration (SharePoint folders/URLs) | **Vision** | External source automation setup requires IT/customer workflow decisions |
 | TaskLine Sync (Push/Pull + Auto-Sync) | **Vision** | Priority 3 uber-stretch — TaskLine integration [L228-234] |
 | Phases Tab | **Vision** | Priority 3 uber-stretch — template-driven project lifecycle |
 
 #### Behavior
 
-- **MVP mode:** Nav shows Projects, Import, Invoice Search (3 items). Vision-only routes redirect to projects list. Project Detail hides TaskLine sync buttons and Phases tab.
-- **Vision mode:** Nav shows all 6 items. All features visible.
+- **MVP mode:** Nav shows Projects, Import, Invoice Search (3 items). Vision-only routes (Portfolio, Pipeline, Grants, Reconciliation, Admin) redirect to projects list. Project Detail hides TaskLine sync buttons and Phases tab.
+- **Vision mode:** Nav shows all 8 items, including Reconciliation and Admin source configuration stubs.
 - Toggle is a segmented pill: `MVP | Vision` with active state highlighted (blue/indigo).
 
 ### 3.9 PDF Invoice Parsing — Provider-Agnostic Extraction Engine
