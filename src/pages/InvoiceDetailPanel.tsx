@@ -77,6 +77,15 @@ export default function InvoiceDetailPanel({
                 </div>
 
                 <div className="px-6 py-5 space-y-6">
+                    {/* Temporary disclaimer: data mapping workflow still being finalized with customer */}
+                    <div className="rounded-lg border px-4 py-3 bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-200">
+                        <p className="text-xs font-semibold">Temporary Notice — Requirements/Workflow Review Pending</p>
+                        <p className="text-xs mt-1">
+                            Source PDF values and recorded IPC values may not yet align 1:1 for all invoices.
+                            Final mapping/validation behavior will be confirmed with customer requirements and workflow decisions.
+                        </p>
+                    </div>
+
                     {/* Key Facts */}
                     <div className="grid grid-cols-2 gap-4">
                         <InfoBlock label="Amount" value={formatMoney(invoice.totalAmount)} large />
