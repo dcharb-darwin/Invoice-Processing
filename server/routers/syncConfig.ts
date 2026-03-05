@@ -43,7 +43,7 @@ export const syncConfigRouter = router({
         .mutation(async ({ input }) => {
             const config = await getOrCreateConfig();
 
-            const updates: any = {};
+            const updates: Partial<typeof schema.syncConfig.$inferInsert> = {};
             if (input.mode !== undefined) updates.mode = input.mode;
             if (input.intervalSeconds !== undefined) updates.intervalSeconds = input.intervalSeconds;
             if (input.enabled !== undefined) updates.enabled = input.enabled;

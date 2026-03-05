@@ -4,6 +4,8 @@ import { formatMoney } from "../lib/format.js";
 import { projectsHash } from "../lib/routes.js";
 import { tasklineProjectUrl } from "../lib/tasklineConfig.js";
 import ModalShell from "../components/ModalShell.js";
+import LoadingSpinner from "../components/LoadingSpinner.js";
+import ErrorBanner from "../components/ErrorBanner.js";
 import NewProjectModal from "./NewProjectModal.js";
 import SyncSettings from "./SyncSettings.js";
 
@@ -60,21 +62,8 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="rounded-xl border border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10 p-6 text-red-700 dark:text-red-400">
-                Failed to load projects: {error.message}
-            </div>
-        );
-    }
+    if (isLoading) return <LoadingSpinner />;
+    if (error) return <ErrorBanner message={`Failed to load projects: ${error.message}`} />;
 
     const syncBadge = (project: any) =>
         project.tasklineProjectId ? SYNC_BADGE.linked : SYNC_BADGE.unlinked;

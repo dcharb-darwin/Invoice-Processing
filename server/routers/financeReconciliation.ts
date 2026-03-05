@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { router, publicProcedure } from "../trpc.js";
+import { toCents } from "../lib/money.js";
 
 type ParsedFinanceRow = {
     projectName?: string;
@@ -13,13 +14,6 @@ type ParsedFinanceRow = {
     budgetAmount: number; // cents
     spentAmount: number; // cents
 };
-
-function moneyToCents(value: unknown): number {
-    if (value == null || value === "") return 0;
-    const n = typeof value === "number" ? value : parseFloat(String(value).replace(/[$,]/g, ""));
-    if (Number.isNaN(n)) return 0;
-    return Math.round(n * 100);
-}
 
 function parseFinanceRows(base64: string): ParsedFinanceRow[] {
     const wb = XLSX.read(base64, { type: "base64" });
@@ -37,8 +31,8 @@ function parseFinanceRows(base64: string): ParsedFinanceRow[] {
             cfpNumber: String(pick(/^cfp$/, /cfp #/, /cfp number/) ?? "").trim() || undefined,
             projectNumber: String(pick(/project #/, /project number/, /^project id$/) ?? "").trim() || undefined,
             budgetCode: String(pick(/budget code/, /springbrook/, /account/) ?? "").trim() || undefined,
-            budgetAmount: moneyToCents(pick(/budget/, /allocated/)),
-            spentAmount: moneyToCents(pick(/spent/, /actual/, /paid/)),
+            budgetAmount: toCents(pick(/budget/, /allocated/)),
+            spentAmount: toCents(pick(/spent/, /actual/, /paid/)),
         };
     }).filter((row) => row.projectName || row.cfpNumber || row.projectNumber || row.budgetCode);
 }

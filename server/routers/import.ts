@@ -1,9 +1,11 @@
 import { router, publicProcedure } from "../trpc.js";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import * as XLSX from "xlsx";
+import { toCents } from "../lib/money.js";
+import { ensureBudgetLineItems } from "../lib/budgetLineItems.js";
 
 /**
  * Import router — parse Eric and Shannon xlsx spreadsheets into the data model.
@@ -15,13 +17,6 @@ import * as XLSX from "xlsx";
 // ============================================================
 // Shared helpers
 // ============================================================
-
-/** Convert a dollar value to cents (integer) */
-function toCents(val: unknown): number {
-    if (val == null || val === "") return 0;
-    const n = typeof val === "number" ? val : parseFloat(String(val).replace(/[$,]/g, ""));
-    return isNaN(n) ? 0 : Math.round(n * 100);
-}
 
 /** Safely extract a trimmed string from a cell */
 function cellStr(val: unknown): string | undefined {
@@ -37,32 +32,6 @@ function parseDate(val: unknown): string | undefined {
         if (d) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
     }
     return String(val).trim();
-}
-
-/** Budget categories auto-generated per contract type (mirrors contracts.ts) */
-const CONTRACT_TYPE_TO_BUDGET_CATEGORIES: Record<string, { category: string }[]> = {
-    Design: [{ category: "Design" }, { category: "Permitting" }],
-    CM_Services: [{ category: "CM_Services" }, { category: "Inspector_Material" }],
-    Construction: [{ category: "Construction" }, { category: "Misc" }],
-};
-
-/** Ensure budget line items exist for a contract type */
-async function ensureBudgetLineItems(projectId: number, contractType: string): Promise<void> {
-    const categories = CONTRACT_TYPE_TO_BUDGET_CATEGORIES[contractType] || [];
-    for (const cat of categories) {
-        const existing = await db.query.budgetLineItems.findFirst({
-            where: (bli, { and: a, eq: e }) =>
-                a(e(bli.projectId, projectId), e(bli.category, cat.category as any)),
-        });
-        if (!existing) {
-            await db.insert(schema.budgetLineItems).values({
-                projectId,
-                category: cat.category as any,
-                projectedCost: 0,
-                percentScopeComplete: 0,
-            });
-        }
-    }
 }
 
 // ============================================================
@@ -722,14 +691,15 @@ export const importRouter = router({
 
             // 4. Insert budget line items
             for (const bli of budget.budgetLineItems) {
+                const category = bli.category as schema.BudgetCategory;
                 const existing = await db.query.budgetLineItems.findFirst({
                     where: (b, { and: a, eq: e }) =>
-                        a(e(b.projectId, projectId!), e(b.category, bli.category as any)),
+                        a(e(b.projectId, projectId!), e(b.category, category)),
                 });
                 if (!existing) {
                     await db.insert(schema.budgetLineItems).values({
                         projectId,
-                        category: bli.category as any,
+                        category,
                         projectedCost: bli.projectedCost,
                         percentScopeComplete: 0,
                     });

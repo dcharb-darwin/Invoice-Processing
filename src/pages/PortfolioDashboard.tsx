@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatPercent } from "../lib/format.js";
+import LoadingSpinner from "../components/LoadingSpinner.js";
+import ErrorBanner from "../components/ErrorBanner.js";
 
 type HealthTone = "green" | "yellow" | "red";
 
@@ -80,43 +82,26 @@ export default function PortfolioDashboard({
     );
 
     const rows: PortfolioRow[] = (projects ?? []).map((project) => {
-        const p = project as any;
-        const budget = Number(p.computed?.totalBudget ?? 0);
+        const budget = project.computed.totalBudget;
+        const totalProjected = project.computed.totalProjected;
 
-        const paidFromComputed = p.computed?.paidToDate ?? p.computed?.totalPaid;
-        const paidFromLineItems = Array.isArray(p.budgetLineItems)
-            ? p.budgetLineItems.reduce(
-                (sum: number, bli: any) => sum + Number(bli?.computed?.paidToDate ?? 0),
-                0
-            )
-            : 0;
-        const paid =
-            typeof paidFromComputed === "number" ? Number(paidFromComputed) : Number(paidFromLineItems);
-
-        const totalProjected = Number(
-            p.computed?.totalProjected ??
-            (Array.isArray(p.budgetLineItems)
-                ? p.budgetLineItems.reduce(
-                    (sum: number, bli: any) => sum + Number(bli?.projectedCost ?? 0),
-                    0
-                )
-                : 0)
+        // projects.list doesn't include invoice breakdowns, so paid is computed
+        // from budgetLineItems' computed fields when available (byId endpoint only)
+        const paid = (project.budgetLineItems ?? []).reduce(
+            (sum, bli) => sum + ((bli as { computed?: { paidToDate?: number } }).computed?.paidToDate ?? 0),
+            0,
         );
 
-        const weightedScope = Array.isArray(p.budgetLineItems)
-            ? p.budgetLineItems.reduce((sum: number, bli: any) => {
-                const projected = Number(bli?.projectedCost ?? 0);
-                const scopePercent = Number(bli?.percentScopeComplete ?? 0);
-                return sum + projected * scopePercent;
-            }, 0)
-            : 0;
+        const weightedScope = (project.budgetLineItems ?? []).reduce((sum, bli) => {
+            return sum + bli.projectedCost * (bli.percentScopeComplete ?? 0);
+        }, 0);
         const scopePercent = totalProjected > 0 ? weightedScope / totalProjected : 0;
         const spentPercent = budget > 0 ? (paid / budget) * 100 : 0;
 
         return {
-            id: Number(p.id),
-            name: p.name || "Untitled Project",
-            projectManager: p.projectManager || "Unassigned",
+            id: project.id,
+            name: project.name || "Untitled Project",
+            projectManager: project.projectManager || "Unassigned",
             budget,
             paid,
             spentPercent,
@@ -140,21 +125,8 @@ export default function PortfolioDashboard({
         setSelectedProjectId(selectedProjectId === id ? null : id);
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">
-                Failed to load portfolio: {error.message}
-            </div>
-        );
-    }
+    if (isLoading) return <LoadingSpinner />;
+    if (error) return <ErrorBanner message={`Failed to load portfolio: ${error.message}`} />;
 
     return (
         <div className="space-y-6">
@@ -232,7 +204,7 @@ export default function PortfolioDashboard({
                             <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
                                 <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Budget Categories</p>
                                 <div className="space-y-2">
-                                    {projectDetail.budgetLineItems.map((bli: any) => {
+                                    {projectDetail.budgetLineItems.map((bli) => {
                                         const pct = bli.projectedCost > 0 ? (bli.computed.paidToDate / bli.projectedCost) * 100 : 0;
                                         const barColor = pct > 95 ? "bg-red-500" : pct > 75 ? "bg-amber-500" : "bg-blue-500";
                                         return (

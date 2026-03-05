@@ -1,7 +1,7 @@
 import { router, publicProcedure } from "../trpc.js";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 export const projectsRouter = router({

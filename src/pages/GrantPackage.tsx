@@ -4,6 +4,7 @@ import { formatMoney, formatDate } from "../lib/format.js";
 import { projectTabHash } from "../lib/routes.js";
 import SourceDocLink from "../components/SourceDocLink.js";
 import EntityLink from "../components/EntityLink.js";
+import TaskBreakdownList from "../components/TaskBreakdownList.js";
 
 /**
  * Grant reimbursement package builder — TaskLine-matching design.
@@ -214,18 +215,7 @@ export default function GrantPackage() {
 
                                         {/* Task breakdowns */}
                                         {inv.taskBreakdowns.length > 0 && (
-                                            <div className="rounded-lg shadow-sm p-3 space-y-1.5" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
-                                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Task Breakdowns</p>
-                                                {inv.taskBreakdowns.map((tb, tbIdx) => (
-                                                    <div key={tbIdx} className="flex justify-between text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                                                        <span>
-                                                            {tb.taskCode && <span className="font-mono mr-2" style={{ color: "var(--color-text-muted)" }}>{tb.taskCode}</span>}
-                                                            {tb.taskDescription}
-                                                        </span>
-                                                        <span className="font-medium">{formatMoney(tb.amount)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            <TaskBreakdownList breakdowns={inv.taskBreakdowns} />
                                         )}
 
                                         {/* Contract info */}

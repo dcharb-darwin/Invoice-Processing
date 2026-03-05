@@ -3,29 +3,13 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { ensureBudgetLineItems } from "../lib/budgetLineItems.js";
 
 /**
  * Contracts router — CRUD for contracts and supplements.
  * [trace: discovery L149-155, L89-93 — contracts with supplements]
  * [trace: skill budget-auto-generator — auto-generate BLIs from contract type]
  */
-
-// Budget line items auto-generated per contract type
-// [trace: dev-plan L146-155, skill budget-auto-generator]
-const CONTRACT_TYPE_TO_BUDGET_CATEGORIES: Record<string, { category: string; optional: boolean }[]> = {
-    Design: [
-        { category: "Design", optional: false },
-        { category: "Permitting", optional: true },
-    ],
-    CM_Services: [
-        { category: "CM_Services", optional: false },
-        { category: "Inspector_Material", optional: true },
-    ],
-    Construction: [
-        { category: "Construction", optional: false },
-        { category: "Misc", optional: true },
-    ],
-};
 
 export const contractsRouter = router({
     // List contracts for a project
@@ -61,26 +45,8 @@ export const contractsRouter = router({
                 .returning();
 
             // Auto-generate budget line items based on contract type
-            const categories = CONTRACT_TYPE_TO_BUDGET_CATEGORIES[input.type] || [];
-            for (const cat of categories) {
-                // Check if this category already exists for the project
-                const existing = await db.query.budgetLineItems.findFirst({
-                    where: (bli, { and, eq: e }) =>
-                        and(
-                            e(bli.projectId, input.projectId),
-                            e(bli.category, cat.category as any)
-                        ),
-                });
-
-                if (!existing) {
-                    await db.insert(schema.budgetLineItems).values({
-                        projectId: input.projectId,
-                        category: cat.category as any,
-                        projectedCost: 0,
-                        percentScopeComplete: 0,
-                    });
-                }
-            }
+            // [trace: dev-plan L146-155, skill budget-auto-generator]
+            await ensureBudgetLineItems(input.projectId, input.type);
 
             return contract;
         }),

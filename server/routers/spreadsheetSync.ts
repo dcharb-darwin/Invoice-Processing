@@ -11,6 +11,7 @@ import {
     validateUnifiedWorkbook,
     workbookHash,
 } from "../lib/spreadsheetSync/unifiedWorkbook.js";
+import { findOrCreateBli } from "../lib/budgetLineItems.js";
 
 type ValidationCache = {
     token: string;
@@ -31,27 +32,6 @@ function cleanupValidationCache() {
             validationCache.delete(key);
         }
     }
-}
-
-async function findOrCreateBli(projectId: number, category: schema.BudgetCategory): Promise<number> {
-    const existing = await db.query.budgetLineItems.findFirst({
-        where: and(
-            eq(schema.budgetLineItems.projectId, projectId),
-            eq(schema.budgetLineItems.category, category),
-        ),
-    });
-    if (existing) return existing.id;
-
-    const [created] = await db
-        .insert(schema.budgetLineItems)
-        .values({
-            projectId,
-            category,
-            projectedCost: 0,
-            percentScopeComplete: 0,
-        })
-        .returning();
-    return created.id;
 }
 
 export const spreadsheetSyncRouter = router({

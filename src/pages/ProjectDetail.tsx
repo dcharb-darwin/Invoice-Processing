@@ -5,6 +5,7 @@ import { sourceLabel, contractLabel } from "../lib/sourceLabels.js";
 import StatusBadge from "../components/StatusBadge.js";
 import SourceDocLink from "../components/SourceDocLink.js";
 import InvoiceDocumentLinks from "../components/InvoiceDocumentLinks.js";
+import LoadingSpinner from "../components/LoadingSpinner.js";
 import InvoiceDetailPanel from "./InvoiceDetailPanel.js";
 import PhasesTab from "./projectDetail/PhasesTab.js";
 import { useViewMode } from "../lib/ViewModeContext.js";
@@ -170,13 +171,7 @@ export default function ProjectDetail({
         }
     };
 
-    if (isLoading || !project) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
-            </div>
-        );
-    }
+    if (isLoading || !project) return <LoadingSpinner />;
 
     const tabs: { key: Tab; label: string; count?: number }[] = [
         { key: "budget", label: "Budget Summary", count: project.budgetLineItems.length },

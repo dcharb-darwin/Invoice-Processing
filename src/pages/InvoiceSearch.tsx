@@ -6,6 +6,7 @@ import StatusBadge from "../components/StatusBadge.js";
 import SourceDocLink from "../components/SourceDocLink.js";
 import InvoiceDocumentLinks from "../components/InvoiceDocumentLinks.js";
 import EntityLink from "../components/EntityLink.js";
+import TaskBreakdownList from "../components/TaskBreakdownList.js";
 
 /**
  * Invoice search — matches TaskLine light-mode design.
@@ -202,18 +203,7 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
 
                                         {/* Task breakdowns */}
                                         {inv.taskBreakdowns && inv.taskBreakdowns.length > 0 && (
-                                            <div className="rounded-lg shadow-sm p-3 space-y-1.5" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
-                                                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Task Breakdowns</p>
-                                                {inv.taskBreakdowns.map((tb) => (
-                                                    <div key={tb.id} className="flex justify-between text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                                                        <span>
-                                                            {tb.taskCode && <span className="font-mono mr-2" style={{ color: "var(--color-text-muted)" }}>{tb.taskCode}</span>}
-                                                            {tb.taskDescription}
-                                                        </span>
-                                                        <span className="font-medium">{formatMoney(tb.amount)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            <TaskBreakdownList breakdowns={inv.taskBreakdowns} />
                                         )}
 
                                         {/* View in Project link */}
