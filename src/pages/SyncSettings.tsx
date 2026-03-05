@@ -30,6 +30,7 @@ export default function SyncSettings({
     onClose: () => void;
 }) {
     const { data: config, refetch } = trpc.syncConfig.get.useQuery(undefined, { enabled: open });
+    const { data: tasklineConnection } = trpc.sync.connectionStatus.useQuery(undefined, { enabled: open });
     const updateConfig = trpc.syncConfig.set.useMutation({ onSuccess: () => refetch() });
 
     const [localMode, setLocalMode] = useState<SyncMode | null>(null);
@@ -79,6 +80,32 @@ export default function SyncSettings({
                 </div>
 
                 <div className="px-6 py-5 space-y-5">
+                    {/* TaskLine connection status */}
+                    {tasklineConnection && (
+                        <div
+                            className="rounded-lg border p-3 text-xs"
+                            style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}
+                        >
+                            <div className="flex items-center justify-between">
+                                <p className="font-medium">TaskLine Connection</p>
+                                <span
+                                    className={`px-2 py-0.5 rounded ${tasklineConnection.ok
+                                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                        : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                        }`}
+                                >
+                                    {tasklineConnection.ok ? "Healthy" : "Issue"}
+                                </span>
+                            </div>
+                            <p className="mt-1" style={helperStyle}>
+                                {tasklineConnection.userMessage}
+                            </p>
+                            <p className="mt-1" style={helperStyle}>
+                                Target: {tasklineConnection.tasklineUrl}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Enable toggle */}
                     <div className="flex items-center justify-between">
                         <div>

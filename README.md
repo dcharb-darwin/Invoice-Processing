@@ -59,8 +59,37 @@ npm run dev
 ### Docker
 
 ```bash
+# IPC only
 docker compose up --build
+
+# IPC + TaskLine integration stack (TaskLine exposed on localhost:3002)
+docker compose --profile fullstack up --build
 ```
+
+### Integration Environment
+
+Copy the example environment file before running integration workflows:
+
+```bash
+cp .env.example .env
+```
+
+Key variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `TASKLINE_URL` | `http://localhost:3002` | IPC server -> TaskLine API base URL |
+| `IPC_URL` | `http://localhost:5173` | Backlink written into TaskLine metadata |
+| `VITE_TASKLINE_APP_URL` | `http://localhost:3002` | Browser deep-link base for TaskLine project links |
+| `TASKLINE_SEED_ON_START` | `false` | Seed TaskLine data when running fullstack profile |
+
+### Integration Smoke Check
+
+```bash
+npm run smoke:taskline
+```
+
+This validates IPC health, TaskLine connectivity diagnostics, push/pull sync flow, and spreadsheet round-trip parity with cleanup of temporary records.
 
 ## Project Structure
 

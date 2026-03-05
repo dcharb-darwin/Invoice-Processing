@@ -13,7 +13,8 @@
         "db:migrate": "tsx server/db/migrate.ts",
         "db:seed": "tsx server/db/seed.ts",
         "db:reset": "rm -f data/ipc.db && npm run db:migrate && npm run db:seed",
-        "docs:generate-demo": "tsx scripts/generate-demo-docs.ts"
+        "docs:generate-demo": "tsx scripts/generate-demo-docs.ts",
+        "smoke:taskline": "tsx scripts/smoke-taskline-integration.ts"
     },
     "dependencies": {
         "@tanstack/react-query": "^5.90.21",

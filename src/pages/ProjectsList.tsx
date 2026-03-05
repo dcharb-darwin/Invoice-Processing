@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney } from "../lib/format.js";
 import { projectsHash } from "../lib/routes.js";
+import { tasklineProjectUrl } from "../lib/tasklineConfig.js";
 import ModalShell from "../components/ModalShell.js";
 import NewProjectModal from "./NewProjectModal.js";
 import SyncSettings from "./SyncSettings.js";
@@ -21,10 +22,12 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
     const [showNewProjectModal, setShowNewProjectModal] = useState(false);
     const [showSyncSettings, setShowSyncSettings] = useState(false);
     const utils = trpc.useUtils();
+    const { data: tasklineConnection } = trpc.sync.connectionStatus.useQuery();
+    const tasklineUnhealthy = tasklineConnection?.ok === false;
 
     const { data: tasklineProjects } = trpc.sync.listTasklineProjects.useQuery(
         undefined,
-        { enabled: showTasklineModal }
+        { enabled: showTasklineModal && !tasklineUnhealthy }
     );
     const importMutation = trpc.sync.receiveFromTaskline.useMutation({
         onSuccess: () => {
@@ -94,6 +97,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                     </button>
                     <button
                         onClick={() => setShowTasklineModal(true)}
+                        disabled={tasklineUnhealthy}
                         className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2"
                     >
                         🔄 Import from TaskLine
@@ -107,6 +111,23 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                     </button>
                 </div>
             </div>
+
+            {tasklineUnhealthy && (
+                <div
+                    className="mb-5 rounded-xl border px-4 py-3 text-sm"
+                    style={{
+                        backgroundColor: "var(--color-surface)",
+                        borderColor: "#fca5a5",
+                        color: "var(--color-text-secondary)",
+                    }}
+                >
+                    <p className="font-medium text-red-700 dark:text-red-300">TaskLine Connection Warning</p>
+                    <p className="mt-1">{tasklineConnection.userMessage}</p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                        Target: {tasklineConnection.tasklineUrl}
+                    </p>
+                </div>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {projects?.map((project) => {
@@ -167,7 +188,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                 <div className="mb-3">
                                     {project.tasklineProjectId ? (
                                         <a
-                                            href={`http://localhost:3000/projects/${project.tasklineProjectId}`}
+                                            href={tasklineProjectUrl(project.tasklineProjectId)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             onClick={(e) => e.stopPropagation()}
@@ -231,15 +252,29 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                             <button onClick={() => setShowTasklineModal(false)} className="text-sm hover:text-red-500 p-1" style={{ color: "var(--color-text-muted)" }}>✕</button>
                         </div>
                         <div className="p-5 space-y-3 overflow-y-auto" style={{ maxHeight: "calc(70vh - 52px)" }}>
-                            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                                Select a TaskLine capital project to import into Invoice Processing:
-                            </p>
-                            {!tasklineProjects ? (
+                            {tasklineUnhealthy ? (
+                                <div
+                                    className="rounded-lg border px-4 py-3 text-sm"
+                                    style={{ borderColor: "#fca5a5", backgroundColor: "var(--color-surface)" }}
+                                >
+                                    <p className="font-medium text-red-700 dark:text-red-300">TaskLine unavailable</p>
+                                    <p className="mt-1" style={{ color: "var(--color-text-secondary)" }}>
+                                        {tasklineConnection.userMessage}
+                                    </p>
+                                    <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                        Target: {tasklineConnection.tasklineUrl}
+                                    </p>
+                                </div>
+                            ) : !tasklineProjects ? (
                                 <div className="flex items-center justify-center py-8">
                                     <div className="animate-spin w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full" />
                                 </div>
                             ) : (
-                                tasklineProjects.map((tlp) => (
+                                <>
+                                    <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                                        Select a TaskLine capital project to import into Invoice Processing:
+                                    </p>
+                                    {tasklineProjects.map((tlp) => (
                                     <div
                                         key={tlp.id}
                                         className="rounded-lg border p-4 flex items-center justify-between"
@@ -269,7 +304,8 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                             </button>
                                         )}
                                     </div>
-                                ))
+                                    ))}
+                                </>
                             )}
                         </div>
             </ModalShell>

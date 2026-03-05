@@ -9,6 +9,7 @@ import InvoiceDetailPanel from "./InvoiceDetailPanel.js";
 import PhasesTab from "./projectDetail/PhasesTab.js";
 import { useViewMode } from "../lib/ViewModeContext.js";
 import { topTabButtonClass } from "../lib/navigationStyles.js";
+import { tasklineProjectUrl } from "../lib/tasklineConfig.js";
 
 /**
  * Project detail page — tabbed view with budget, contracts, invoices, funding, ROW.
@@ -71,6 +72,7 @@ export default function ProjectDetail({
     const { data: project, isLoading, refetch } = trpc.projects.byId.useQuery({ id: projectId });
     const { data: alerts } = trpc.gutcheck.forProject.useQuery({ projectId });
     const { data: syncStatus, refetch: refetchSync } = trpc.sync.status.useQuery({ projectId });
+    const { data: tasklineConnection } = trpc.sync.connectionStatus.useQuery();
     const { isMvp } = useViewMode();
     const createInvoice = trpc.invoices.create.useMutation({ onSuccess: () => { refetch(); setShowInvoiceForm(false); } });
     const addSupplement = trpc.contracts.addSupplement.useMutation({ onSuccess: () => refetch() });
@@ -143,6 +145,7 @@ export default function ProjectDetail({
     }, []);
 
     const [exporting, setExporting] = useState(false);
+    const tasklineUnhealthy = tasklineConnection?.ok === false;
     const utils = trpc.useUtils();
     const handleExport = async () => {
         setExporting(true);
@@ -234,7 +237,11 @@ export default function ProjectDetail({
                             {syncStatus?.linked ? (
                                 <>
                                     <a
-                                        href={`http://localhost:3000/projects/${syncStatus.tasklineProjectId}`}
+                                        href={
+                                            syncStatus.tasklineProjectId !== null
+                                                ? tasklineProjectUrl(syncStatus.tasklineProjectId)
+                                                : "#"
+                                        }
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
@@ -247,7 +254,7 @@ export default function ProjectDetail({
                             ) : (
                                 <button
                                     onClick={() => pushToTaskline.mutate({ projectId })}
-                                    disabled={pushToTaskline.isPending}
+                                    disabled={pushToTaskline.isPending || tasklineUnhealthy}
                                     className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
                                 >
                                     {pushToTaskline.isPending ? "Pushing…" : "⬆ Push to TaskLine"}
@@ -264,6 +271,23 @@ export default function ProjectDetail({
                     </button>
                 </div>
             </div>
+
+            {!isMvp && tasklineUnhealthy && (
+                <div
+                    className="mb-4 rounded-xl border px-4 py-3 text-sm"
+                    style={{
+                        backgroundColor: "var(--color-surface)",
+                        borderColor: "#fca5a5",
+                        color: "var(--color-text-secondary)",
+                    }}
+                >
+                    <p className="font-medium text-red-700 dark:text-red-300">TaskLine Connection Warning</p>
+                    <p className="mt-1">{tasklineConnection.userMessage}</p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                        Target: {tasklineConnection.tasklineUrl}
+                    </p>
+                </div>
+            )}
 
             {/* Gut-Check Alerts */}
             {alerts && alerts.length > 0 && (
