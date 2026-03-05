@@ -11,6 +11,9 @@ import { tasklineSyncRouter } from "./routers/tasklineSync.js";
 import { templatesRouter } from "./routers/templates.js";
 import { syncConfigRouter } from "./routers/syncConfig.js";
 import { extractionRouter } from "./routers/extraction.js";
+import { spreadsheetSyncRouter } from "./routers/spreadsheetSync.js";
+import { financeReconciliationRouter } from "./routers/financeReconciliation.js";
+import { publicIngestRouter } from "./routers/publicIngest.js";
 
 export const appRouter = router({
     projects: projectsRouter,
@@ -25,7 +28,9 @@ export const appRouter = router({
     templates: templatesRouter,
     syncConfig: syncConfigRouter,
     extraction: extractionRouter,
+    spreadsheetSync: spreadsheetSyncRouter,
+    financeReconciliation: financeReconciliationRouter,
+    publicIngest: publicIngestRouter,
 });
 
 export type AppRouter = typeof appRouter;
-

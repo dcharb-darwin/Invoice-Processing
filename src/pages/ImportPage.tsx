@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import PdfExtractReview from "../components/PdfExtractReview.js";
 
-type ParserType = "eric" | "shannon";
+type ParserType = "eric" | "shannon" | "unified";
 type ToastState = { type: "success" | "error"; message: string } | null;
 type ImportTab = "spreadsheet" | "pdf";
 
@@ -32,11 +32,21 @@ export default function ImportPage() {
     const [parser, setParser] = useState<ParserType>("eric");
     const [toast, setToast] = useState<ToastState>(null);
     const [fileInputKey, setFileInputKey] = useState(0);
+    const [targetProjectId, setTargetProjectId] = useState<number | "">("");
+    const [validation, setValidation] = useState<{
+        validationToken: string;
+        format: string;
+        criticalIssues: Array<{ code: string; message: string; tab?: string }>;
+        warnings: Array<{ code: string; message: string; tab?: string }>;
+    } | null>(null);
 
     const importEric = trpc.import.importEricXlsx.useMutation();
     const importShannon = trpc.import.importShannonXlsx.useMutation();
+    const validateSync = trpc.spreadsheetSync.validate.useMutation();
+    const importSync = trpc.spreadsheetSync.import.useMutation();
+    const { data: projects } = trpc.projects.list.useQuery();
 
-    const isImporting = importEric.isPending || importShannon.isPending;
+    const isImporting = importEric.isPending || importShannon.isPending || validateSync.isPending || importSync.isPending;
 
     useEffect(() => {
         if (!toast) return;
@@ -54,12 +64,57 @@ export default function ImportPage() {
 
         try {
             const base64 = await readFileAsBase64(file);
-            const result = parser === "eric"
+            if (parser === "unified") {
+                if (!validation) {
+                    const result = await validateSync.mutateAsync({
+                        base64,
+                        projectId: targetProjectId === "" ? undefined : targetProjectId,
+                    });
+                    setValidation({
+                        validationToken: result.validationToken,
+                        format: result.format,
+                        criticalIssues: result.criticalIssues,
+                        warnings: result.warnings,
+                    });
+                    if (result.criticalIssues.length > 0) {
+                        setToast({ type: "error", message: `Validation failed (${result.criticalIssues.length} critical issues)` });
+                    } else {
+                        setToast({ type: "success", message: `Validation passed (${result.warnings.length} warnings)` });
+                    }
+                    return;
+                }
+
+                if (validation.criticalIssues.length > 0) {
+                    setToast({ type: "error", message: "Fix critical validation issues before applying import." });
+                    return;
+                }
+                if (targetProjectId === "") {
+                    setToast({ type: "error", message: "Select a target project to apply unified import." });
+                    return;
+                }
+
+                const result = await importSync.mutateAsync({
+                    base64,
+                    projectId: targetProjectId,
+                    validationToken: validation.validationToken,
+                });
+                setToast({
+                    type: "success",
+                    message: `Unified import applied: ${result.upserts.contracts} contracts, ${result.upserts.invoices} invoices`,
+                });
+                setValidation(null);
+                setFile(null);
+                setFileInputKey((k) => k + 1);
+                return;
+            }
+
+            const legacyResult = parser === "eric"
                 ? await importEric.mutateAsync({ base64 })
                 : await importShannon.mutateAsync({ base64 });
 
-            const importedProjectName = result.projectName?.trim() || `Project #${result.projectId}`;
+            const importedProjectName = legacyResult.projectName?.trim() || `Project #${legacyResult.projectId}`;
             setToast({ type: "success", message: `Imported ${importedProjectName}` });
+            setValidation(null);
             setFile(null);
             setFileInputKey((k) => k + 1);
         } catch (error) {
@@ -172,6 +227,35 @@ export default function ImportPage() {
                                 </label>
 
                                 <label
+                                    className={`rounded-xl border p-4 cursor-pointer transition-colors ${parser === "unified"
+                                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                                        : ""
+                                        }`}
+                                    style={parser !== "unified" ? { borderColor: "var(--color-border)" } : undefined}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <input
+                                            type="radio"
+                                            name="parser"
+                                            value="unified"
+                                            checked={parser === "unified"}
+                                            onChange={() => {
+                                                setParser("unified");
+                                                setValidation(null);
+                                            }}
+                                            disabled={isImporting}
+                                            className="mt-1 accent-blue-600"
+                                        />
+                                        <div>
+                                            <div className="text-sm font-semibold">Unified v1</div>
+                                            <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                                                6-tab standardized workbook
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label
                                     className={`rounded-xl border p-4 cursor-pointer transition-colors ${parser === "shannon"
                                         ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
                                         : ""
@@ -199,6 +283,50 @@ export default function ImportPage() {
                             </div>
                         </fieldset>
 
+                        {parser === "unified" && (
+                            <div className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--color-border)" }}>
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">Target Project</label>
+                                    <select
+                                        value={targetProjectId}
+                                        onChange={(e) => {
+                                            setTargetProjectId(e.target.value ? Number(e.target.value) : "");
+                                            setValidation(null);
+                                        }}
+                                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                                        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
+                                    >
+                                        <option value="">Select project…</option>
+                                        {projects?.map((p) => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {validation && (
+                                    <div className="space-y-2 text-xs">
+                                        <p className="font-semibold">
+                                            Format: {validation.format} · Critical: {validation.criticalIssues.length} · Warnings: {validation.warnings.length}
+                                        </p>
+                                        {validation.criticalIssues.length > 0 && (
+                                            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
+                                                {validation.criticalIssues.map((issue, idx) => (
+                                                    <p key={`${issue.code}-${idx}`}>• {issue.tab ? `[${issue.tab}] ` : ""}{issue.message}</p>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {validation.warnings.length > 0 && (
+                                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-700">
+                                                {validation.warnings.map((issue, idx) => (
+                                                    <p key={`${issue.code}-${idx}`}>• {issue.tab ? `[${issue.tab}] ` : ""}{issue.message}</p>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <button
                             type="submit"
                             disabled={!file || isImporting}
@@ -207,7 +335,9 @@ export default function ImportPage() {
                             {isImporting && (
                                 <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                             )}
-                            {isImporting ? "Importing..." : "Import File"}
+                            {isImporting ? "Processing..." : (parser === "unified"
+                                ? (validation ? "Apply Import" : "Validate Workbook")
+                                : "Import File")}
                         </button>
                     </form>
                 </div>
@@ -215,4 +345,3 @@ export default function ImportPage() {
         </div>
     );
 }
-

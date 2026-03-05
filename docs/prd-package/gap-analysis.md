@@ -4,6 +4,34 @@
 
 ---
 
+## 0. Budget/Grant/Invoice Lineage Requirements Gap (ACTIVE)
+
+**Risk:** We do not yet have fully confirmed customer requirements for end-to-end lineage across:
+- adopted budget + budget codes
+- grant/loan source documents
+- how budget/grant codes link to projects/contracts/invoices
+- how invoice line items should be interpreted, validated, and tracked against those sources
+
+**Current state:**
+- IPC currently stores invoice and budget data from app entry/import workflows.
+- Source PDF viewer is available, but source-vs-recorded values may differ depending on manual spreadsheet history and seed/prototype data.
+- The team has been using manual spreadsheets, which is valid for now and informs patterns.
+
+**Gap statement (customer-facing):**
+- We need a requirements/workflow decision session to finalize the authoritative mapping rules:
+  - Which source governs each field (budget doc, grant agreement, spreadsheet, invoice PDF, app edit)
+  - How codes are resolved and validated (Springbrook budget code, grant code, project/CFP linking)
+  - What constitutes a blocking mismatch vs a warning
+  - How reconciliation should be presented for PM and Finance users
+
+**Near-term approach:**
+- Keep current manual/spreadsheet-assisted workflow operational.
+- Add temporary UI disclaimers where source-vs-recorded comparisons occur.
+- Do not enforce strict automated source reconciliation until customer mapping rules are approved.
+
+**Automation direction (after alignment):**
+- Once lineage rules are approved, automate import/extraction/reconciliation paths and enforce deterministic validation gates.
+
 ## 1. Multi-PM Concurrent Edit Conflict
 
 **Risk:** Both Eric and Shannon could import/export the same project's .xlsx simultaneously during transition.
@@ -133,6 +161,7 @@
 
 | Gap | Impact | Effort | When |
 |-----|--------|--------|------|
+| Budget/grant/invoice lineage requirements | **Critical** | Medium (requires customer decisions) | **Immediate discovery follow-up** |
 | Multi-PM conflict detection | Medium | Low | Before SharePoint sync |
 | Fiscal year rollover | High | Medium | Before Jan 2027 |
 | Retainage tracking | High (construction only) | Medium | Before construction project tracking |

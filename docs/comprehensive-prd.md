@@ -1,6 +1,6 @@
 # Invoice Processing Coordinator — Comprehensive PRD
 
-> **Version:** 1.4.1
+> **Version:** 1.5.0
 > **Status:** V1 + V2 COMPLETE — Modules 1-5 implemented
 > **Last Updated:** 2026-03-05
 > **Primary Deliverable** — This document IS the product. The prototype code is disposable.
@@ -561,6 +561,59 @@ This program standardizes repository governance and cross-surface UI behavior wh
 
 **Governance alignment requirement:** migration metadata, module registry, and PRD metadata must reference the same active baseline migration chain.
 
+### 3.11 Unified Spreadsheet Sync + Reconciliation + Ingestion (cross-cutting pattern)
+
+This program defines the transition from ad-hoc spreadsheet interoperability to a governed sync pattern with validation gates, read-only finance reconciliation, and manual-run public document ingestion.
+
+**Canonical source rule:**
+- IPC application data is canonical for project operational state.
+- Spreadsheet imports are validated before mutation.
+- Finance tracker data is read-only and used only for comparison/reporting.
+
+**Unified workbook contract (`unified_xlsx_v1`):**
+- Required tabs: `Overview`, `Design`, `ROW Parcels`, `CM Services`, `Construction`, `Funding & Grants`
+- Workbook includes hidden metadata tab `IPC_META` with:
+  - `formatVersion`
+  - `exportedAt`
+  - `projectId`
+  - `workbookHash`
+- Export supports both:
+  - legacy 4-tab workbook (`Overview`, `Budget`, `Contracts`, `InvoiceLog`) for backward compatibility
+  - default unified 6-tab workbook for department standardization
+
+**Validation gate rule (bidirectional sync definition):**
+- Import flow is always: `detectFormat` -> `validate` -> `import`
+- Import is blocked when any `critical` issue exists.
+- `warning` issues are reported but do not block.
+- Critical examples:
+  - missing required unified tabs/headers
+  - duplicate invoice merge keys in a project
+  - unresolvable category mapping for required rows
+  - invoice total mismatch against required row sums
+  - stale `workbookHash` conflict
+
+**Finance reconciliation rule (read-only):**
+- Finance snapshots can be imported and compared to IPC state.
+- No writes to finance sources or finance systems.
+- Delta categories:
+  - `expected_payment_lag`
+  - `budget_overrun_risk`
+  - `code_mismatch`
+  - `missing_in_finance`
+  - `missing_in_ipc`
+
+**Public document ingestion rule (manual-run):**
+- Data sources are curated local files and approved URLs.
+- Manual-run ingestion produces deterministic run reports.
+- First-pass parser priority: structured `.xlsx`.
+- Non-deterministic or unresolved records are routed to a review queue.
+
+**Invoice extraction hardening rule:**
+- Text-PDF extraction remains provider-based.
+- Extraction creates drafts first; drafts are never auto-committed as invoices.
+- Human approval maps extracted line items to budget line items before save.
+- Extraction feedback (`extracted` vs `corrected`) is persisted for tuning.
+
 ---
 
 ## 4. API Reference
@@ -660,6 +713,46 @@ BLIs are only created if they don't already exist for the project (idempotent).
 |-----------|------|-------|--------|-------------|
 | `import.importEricXlsx` | mutation | `{ base64: string, projectId?: number }` | `{ projectId, projectName, contracts, invoices, parcels, budgetCodes }` | Parses Eric's multi-tab format. Creates project if no projectId given. |
 | `import.importShannonXlsx` | mutation | `{ base64: string, projectId?: number }` | `{ projectId, projectName, fundingSources, budgetLineItems, contract, invoices }` | Parses Shannon's BTR format. Creates project if no projectId given. Merges invoices by number. |
+
+### 4.8 `spreadsheetSync` Router
+
+**Source:** `server/routers/spreadsheetSync.ts`
+
+| Procedure | Type | Input | Output | Description |
+|-----------|------|-------|--------|-------------|
+| `spreadsheetSync.detectFormat` | mutation | `{ base64: string, fileName?: string }` | `{ format, confidence, sheetNames }` | Detects workbook format (`unified_v1`, `eric_legacy`, `shannon_legacy`, `unknown`). |
+| `spreadsheetSync.validate` | mutation | `{ base64: string, projectId?: number }` | `{ validationToken, format, criticalIssues[], warnings[], deltaSummary }` | Runs non-mutating validation and produces a token required for gated import. |
+| `spreadsheetSync.import` | mutation | `{ base64: string, projectId: number, validationToken: string }` | `{ syncEventId, upserts, warnings }` | Applies import only when validation token is valid and no critical issues were found. |
+| `spreadsheetSync.exportUnified` | query | `{ projectId: number }` | `{ base64, fileName, formatVersion, workbookHash }` | Exports standardized 6-tab workbook with `IPC_META` metadata. |
+| `spreadsheetSync.roundTripCheck` | query | `{ projectId: number }` | `{ pass, differences }` | Exports unified workbook, re-validates parser compatibility, and reports differences. |
+
+### 4.9 `financeReconciliation` Router
+
+**Source:** `server/routers/financeReconciliation.ts`
+
+| Procedure | Type | Input | Output | Description |
+|-----------|------|-------|--------|-------------|
+| `financeReconciliation.importSnapshot` | mutation | `{ base64: string, fileName: string }` | `{ snapshotId, parsedProjects }` | Imports a finance tracker snapshot for read-only comparison. |
+| `financeReconciliation.deltaReport` | query | `{ snapshotId?: number }` | `{ summary, items }` | Returns categorized deltas between IPC and finance snapshot data. |
+
+### 4.10 `publicIngest` Router
+
+**Source:** `server/routers/publicIngest.ts`
+
+| Procedure | Type | Input | Output | Description |
+|-----------|------|-------|--------|-------------|
+| `publicIngest.run` | mutation | `{ sourceIds?: number[] }` | `{ runId, status }` | Executes manual-run ingestion over curated sources and records deterministic outcomes. |
+| `publicIngest.runReport` | query | `{ runId: number }` | `{ metrics, issues, reviewQueueCount }` | Fetches run metrics/issues and unresolved review queue count. |
+
+### 4.11 `extraction` Router (Draft Queue Extensions)
+
+**Source:** `server/routers/extraction.ts`
+
+| Procedure | Type | Input | Output | Description |
+|-----------|------|-------|--------|-------------|
+| `extraction.enqueueFromFolder` | mutation | `{ folderPath: string }` | `{ queued }` | Queues supported text-based PDF files from a local folder as extraction drafts. |
+| `extraction.listDrafts` | query | `{ status?: "pending" \| "approved" \| "rejected" }` | `{ drafts[] }` | Lists extraction drafts and their review state. |
+| `extraction.approveDraft` | mutation | `{ draftId: number, mappedFields }` | `{ invoiceId }` | Human-approved draft -> invoice creation with explicit BLI mapping. |
 
 ---
 
@@ -895,6 +988,11 @@ From `01-development-plan.md` — checked off based on implementation state.
 - Added modal viewport control requirement to Section 3.10: Invoice Pipeline edit popup must support maximize/restore with existing close behavior preserved.
 - Added PRD package details in `docs/prd-package/ui-ux-consistency-prd.md` under `Navigation Visibility & Modal Viewport Control`.
 - Version bumped to reflect cross-surface navigation + modal visibility remediation.
+
+### v1.5.0 — 2026-03-05
+- Added Section 3.11 defining system-wide pattern for unified spreadsheet sync (`unified_xlsx_v1`), validation gate semantics, read-only finance reconciliation, manual-run public ingestion, and extraction drafts with human approval.
+- Added API reference entries for `spreadsheetSync`, `financeReconciliation`, `publicIngest`, and extraction draft-queue extensions.
+- Documented canonical-source policy (IPC canonical, finance read-only) and blocking critical mismatch behavior for import apply.
 
 ### v1.4.0 — 2026-03-05
 - Added `docs/prd-package/legacy-cleanup-prd.md` defining tracked-file cleanup matrix, migration baseline policy, governance synchronization, and acceptance criteria.

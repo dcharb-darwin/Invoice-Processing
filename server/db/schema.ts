@@ -167,6 +167,115 @@ export const syncConfig = sqliteTable("sync_config", {
     lastAutoSyncResult: text("last_auto_sync_result"), // JSON: {synced: number, errors: string[]}
 });
 
+// [trace: unified_xlsx_v1 sync gate]
+export const spreadsheetSyncEvents = sqliteTable("spreadsheet_sync_events", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    projectId: integer("project_id").references(() => projects.id),
+    eventType: text("event_type").notNull(), // validate | import | export
+    format: text("format").notNull(), // unified_v1 | eric_legacy | shannon_legacy | unknown
+    workbookHash: text("workbook_hash"),
+    validationToken: text("validation_token"),
+    criticalCount: integer("critical_count").notNull().default(0),
+    warningCount: integer("warning_count").notNull().default(0),
+    detailsJson: text("details_json"), // JSON payload for diagnostics
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+    appliedAt: text("applied_at"),
+});
+
+// [trace: finance reconciliation, read-only snapshots]
+export const financeTrackerSnapshots = sqliteTable("finance_tracker_snapshots", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    fileName: text("file_name").notNull(),
+    sourceName: text("source_name"),
+    parsedProjects: integer("parsed_projects").notNull().default(0),
+    rawJson: text("raw_json"), // Parsed row JSON for traceability
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const FINANCE_DELTA_CATEGORIES = [
+    "expected_payment_lag",
+    "budget_overrun_risk",
+    "code_mismatch",
+    "missing_in_finance",
+    "missing_in_ipc",
+] as const;
+export type FinanceDeltaCategory = (typeof FINANCE_DELTA_CATEGORIES)[number];
+
+export const financeDeltaItems = sqliteTable("finance_delta_items", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    snapshotId: integer("snapshot_id").notNull().references(() => financeTrackerSnapshots.id),
+    projectId: integer("project_id").references(() => projects.id),
+    cfpNumber: text("cfp_number"),
+    projectNumber: text("project_number"),
+    budgetCode: text("budget_code"),
+    category: text("category").$type<FinanceDeltaCategory>().notNull(),
+    severity: text("severity").notNull().default("medium"), // low | medium | high
+    deltaAmount: integer("delta_amount").default(0), // cents
+    message: text("message").notNull(),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const PUBLIC_SOURCE_TYPES = ["local_file", "public_url"] as const;
+export type PublicSourceType = (typeof PUBLIC_SOURCE_TYPES)[number];
+
+export const publicDocumentSources = sqliteTable("public_document_sources", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    sourceType: text("source_type").$type<PublicSourceType>().notNull(),
+    location: text("location").notNull(), // local path or URL
+    parserHint: text("parser_hint"),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const INGEST_RUN_STATUSES = ["running", "completed", "failed"] as const;
+export type IngestRunStatus = (typeof INGEST_RUN_STATUSES)[number];
+
+export const publicIngestRuns = sqliteTable("public_ingest_runs", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    status: text("status").$type<IngestRunStatus>().notNull().default("running"),
+    sourceCount: integer("source_count").notNull().default(0),
+    recordCount: integer("record_count").notNull().default(0),
+    issueCount: integer("issue_count").notNull().default(0),
+    startedAt: text("started_at").notNull().$defaultFn(() => new Date().toISOString()),
+    completedAt: text("completed_at"),
+});
+
+export const INGEST_RECORD_STATUSES = ["parsed", "review_required", "error"] as const;
+export type IngestRecordStatus = (typeof INGEST_RECORD_STATUSES)[number];
+
+export const publicIngestRecords = sqliteTable("public_ingest_records", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    runId: integer("run_id").notNull().references(() => publicIngestRuns.id),
+    sourceId: integer("source_id").references(() => publicDocumentSources.id),
+    recordType: text("record_type").notNull(), // budget | grant | project | unknown
+    status: text("status").$type<IngestRecordStatus>().notNull().default("parsed"),
+    confidence: real("confidence"),
+    message: text("message"),
+    provenance: text("provenance"), // source location + parser details JSON
+    payloadJson: text("payload_json"), // extracted payload JSON
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const EXTRACTION_DRAFT_STATUSES = ["pending", "approved", "rejected"] as const;
+export type ExtractionDraftStatus = (typeof EXTRACTION_DRAFT_STATUSES)[number];
+
+// [trace: extraction draft queue]
+export const extractionDrafts = sqliteTable("extraction_drafts", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    status: text("status").$type<ExtractionDraftStatus>().notNull().default("pending"),
+    fileName: text("file_name").notNull(),
+    providerName: text("provider_name").notNull(),
+    projectId: integer("project_id").references(() => projects.id),
+    extractedJson: text("extracted_json").notNull(),
+    mappedJson: text("mapped_json").notNull(),
+    overallConfidence: real("overall_confidence"),
+    reviewNotes: text("review_notes"),
+    approvedInvoiceId: integer("approved_invoice_id").references(() => invoices.id),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+    reviewedAt: text("reviewed_at"),
+});
+
 // [trace: comprehensive-prd.md §3.9 — extraction feedback loop]
 // Stores what the extraction engine proposed vs what the PM actually saved.
 // Used for: regex tuning, LLM few-shot examples, vendor auto-detection.
@@ -241,4 +350,44 @@ export const projectPhasesRelations = relations(projectPhases, ({ one }) => ({
 
 export const extractionFeedbackRelations = relations(extractionFeedback, ({ one }) => ({
     invoice: one(invoices, { fields: [extractionFeedback.invoiceId], references: [invoices.id] }),
+}));
+
+export const spreadsheetSyncEventsRelations = relations(spreadsheetSyncEvents, ({ one }) => ({
+    project: one(projects, { fields: [spreadsheetSyncEvents.projectId], references: [projects.id] }),
+}));
+
+export const financeTrackerSnapshotsRelations = relations(financeTrackerSnapshots, ({ many }) => ({
+    deltaItems: many(financeDeltaItems),
+}));
+
+export const financeDeltaItemsRelations = relations(financeDeltaItems, ({ one }) => ({
+    snapshot: one(financeTrackerSnapshots, {
+        fields: [financeDeltaItems.snapshotId],
+        references: [financeTrackerSnapshots.id],
+    }),
+    project: one(projects, { fields: [financeDeltaItems.projectId], references: [projects.id] }),
+}));
+
+export const publicIngestRunsRelations = relations(publicIngestRuns, ({ many }) => ({
+    records: many(publicIngestRecords),
+}));
+
+export const publicDocumentSourcesRelations = relations(publicDocumentSources, ({ many }) => ({
+    records: many(publicIngestRecords),
+}));
+
+export const publicIngestRecordsRelations = relations(publicIngestRecords, ({ one }) => ({
+    run: one(publicIngestRuns, { fields: [publicIngestRecords.runId], references: [publicIngestRuns.id] }),
+    source: one(publicDocumentSources, {
+        fields: [publicIngestRecords.sourceId],
+        references: [publicDocumentSources.id],
+    }),
+}));
+
+export const extractionDraftsRelations = relations(extractionDrafts, ({ one }) => ({
+    project: one(projects, { fields: [extractionDrafts.projectId], references: [projects.id] }),
+    approvedInvoice: one(invoices, {
+        fields: [extractionDrafts.approvedInvoiceId],
+        references: [invoices.id],
+    }),
 }));

@@ -47,11 +47,16 @@ export default function PdfExtractReview() {
     const [vendor, setVendor] = useState("");
     const [totalAmount, setTotalAmount] = useState("");
     const [dateReceived, setDateReceived] = useState("");
+    const [lineItemBudgetMap, setLineItemBudgetMap] = useState<Record<number, number | "">>({});
+    const [draftId, setDraftId] = useState<number | null>(null);
 
     const extractMutation = trpc.extraction.extractFromPdf.useMutation();
-    const createInvoice = trpc.invoices.create.useMutation();
-    const saveFeedback = trpc.extraction.saveFeedback.useMutation();
+    const approveDraft = trpc.extraction.approveDraft.useMutation();
     const { data: projects } = trpc.projects.list.useQuery();
+    const { data: selectedProject } = trpc.projects.byId.useQuery(
+        { id: projectId as number },
+        { enabled: projectId !== "" },
+    );
     const [fileName, setFileName] = useState("");
 
     const handleDrop = useCallback((e: React.DragEvent) => {
@@ -71,12 +76,14 @@ export default function PdfExtractReview() {
                 projectId: projectId !== "" ? projectId : undefined,
             });
             setExtraction(result);
+            setDraftId(result.draftId ?? null);
             setFileName(file.name);
             // Pre-fill editable fields
             setInvoiceNumber(result.mapped.invoiceNumber || "");
             setVendor(result.mapped.vendor || "");
             setTotalAmount(String(result.mapped.totalAmount / 100)); // show dollars
             setDateReceived(result.mapped.dateReceived || "");
+            setLineItemBudgetMap({});
             if (result.suggestedProjectId && projectId === "") {
                 setProjectId(result.suggestedProjectId);
             }
@@ -87,53 +94,44 @@ export default function PdfExtractReview() {
     };
 
     const handleSave = async () => {
-        if (projectId === "" || !invoiceNumber) {
+        if (projectId === "" || !invoiceNumber || !draftId) {
             setToast({ type: "error", message: "Project and invoice number are required." });
             return;
         }
         try {
             const totalCents = Math.round(parseFloat(totalAmount) * 100) || 0;
             const lineItems = extraction?.mapped?.lineItems || [];
-            await createInvoice.mutateAsync({
-                projectId: projectId as number,
-                invoiceNumber,
-                vendor: vendor || undefined,
-                totalAmount: totalCents,
-                dateReceived: dateReceived || undefined,
-                status: "Received",
-                taskBreakdowns: lineItems.map((li: any) => ({
-                    taskCode: li.taskCode,
-                    taskDescription: li.taskDescription,
-                    amount: li.amount,
-                })),
-            });
-
-            // Fire-and-forget: save feedback for learning loop
-            if (extraction) {
-                saveFeedback.mutate({
-                    fileName,
-                    providerName: extraction.extraction.providerName,
-                    extractedFields: {
-                        invoiceNumber: extraction.mapped.invoiceNumber,
-                        vendor: extraction.mapped.vendor,
-                        totalAmount: extraction.mapped.totalAmount,
-                        dateReceived: extraction.mapped.dateReceived,
-                    },
-                    correctedFields: {
-                        invoiceNumber,
-                        vendor,
-                        totalAmount: totalCents,
-                        dateReceived,
-                    },
-                    overallConfidence: extraction.confidence?.score,
-                });
+            const missingMapping = lineItems.some((_: any, idx: number) => !lineItemBudgetMap[idx]);
+            if (lineItems.length > 0 && missingMapping) {
+                setToast({ type: "error", message: "Map each extracted line item to a budget category before approval." });
+                return;
             }
 
-            setToast({ type: "success", message: `Invoice ${invoiceNumber} created successfully` });
+            const approval = await approveDraft.mutateAsync({
+                draftId,
+                mappedFields: {
+                    projectId: projectId as number,
+                    invoiceNumber,
+                    vendor: vendor || undefined,
+                    totalAmount: totalCents,
+                    dateReceived: dateReceived || undefined,
+                    status: "Received",
+                    taskBreakdowns: lineItems.map((li: any, idx: number) => ({
+                        budgetLineItemId: Number(lineItemBudgetMap[idx]),
+                        taskCode: li.taskCode,
+                        taskDescription: li.taskDescription,
+                        amount: li.amount,
+                    })),
+                },
+            });
+
+            setToast({ type: "success", message: `Invoice ${invoiceNumber} approved (ID ${approval.invoiceId})` });
             // Reset
             setFile(null);
             setExtraction(null);
             setFileName("");
+            setDraftId(null);
+            setLineItemBudgetMap({});
         } catch (err) {
             setToast({ type: "error", message: err instanceof Error ? err.message : "Save failed" });
         }
@@ -152,6 +150,15 @@ export default function PdfExtractReview() {
                     role="status"
                 >{toast.message}</div>
             )}
+
+            {/* Temporary disclaimer: source-to-record mapping workflow pending customer alignment */}
+            <div className="rounded-xl border px-4 py-3 text-xs bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-200">
+                <p className="font-semibold">Temporary Notice — Requirements/Workflow Review Pending</p>
+                <p className="mt-1">
+                    Extracted PDF values and recorded IPC values may not align 1:1 for all invoices.
+                    Final mapping, validation gates, and reconciliation workflow are pending customer confirmation.
+                </p>
+            </div>
 
             {/* Upload zone */}
             {!extraction && (
@@ -303,6 +310,7 @@ export default function PdfExtractReview() {
                                         <tr style={{ backgroundColor: "var(--color-bg)" }}>
                                             <th className="text-left px-3 py-2 font-medium text-xs">Task</th>
                                             <th className="text-left px-3 py-2 font-medium text-xs">Description</th>
+                                            <th className="text-left px-3 py-2 font-medium text-xs">Budget Category</th>
                                             <th className="text-right px-3 py-2 font-medium text-xs">Amount</th>
                                         </tr>
                                     </thead>
@@ -311,6 +319,19 @@ export default function PdfExtractReview() {
                                             <tr key={i} className="border-t" style={{ borderColor: "var(--color-border-light)" }}>
                                                 <td className="px-3 py-2 font-mono text-xs">{li.taskCode}</td>
                                                 <td className="px-3 py-2 text-xs">{li.taskDescription}</td>
+                                                <td className="px-3 py-2 text-xs">
+                                                    <select
+                                                        value={lineItemBudgetMap[i] ?? ""}
+                                                        onChange={(e) => setLineItemBudgetMap((prev) => ({ ...prev, [i]: e.target.value ? Number(e.target.value) : "" }))}
+                                                        className="border rounded px-2 py-1 text-xs"
+                                                        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
+                                                    >
+                                                        <option value="">Select…</option>
+                                                        {selectedProject?.budgetLineItems?.map((bli: any) => (
+                                                            <option key={bli.id} value={bli.id}>{bli.category}</option>
+                                                        ))}
+                                                    </select>
+                                                </td>
                                                 <td className="px-3 py-2 text-right font-mono text-xs">{formatMoney(li.amount)}</td>
                                             </tr>
                                         ))}
@@ -331,11 +352,11 @@ export default function PdfExtractReview() {
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={createInvoice.isPending || projectId === "" || !invoiceNumber}
+                            disabled={approveDraft.isPending || projectId === "" || !invoiceNumber || !draftId}
                             className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-xl font-medium text-sm shadow-sm transition-colors inline-flex items-center gap-2"
                         >
-                            {createInvoice.isPending && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                            Save & Create Invoice
+                            {approveDraft.isPending && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
+                            Approve Draft & Create Invoice
                         </button>
                     </div>
                 </div>

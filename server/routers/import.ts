@@ -588,19 +588,42 @@ export const importRouter = router({
 
                 // Insert invoices
                 for (const inv of parsed.invoices) {
-                    const [invoice] = await db
-                        .insert(schema.invoices)
-                        .values({
-                            projectId: projectId!,
-                            contractId: contract.id,
-                            invoiceNumber: inv.invoiceNumber,
-                            vendor: inv.vendor,
-                            totalAmount: inv.totalAmount,
-                            dateReceived: inv.dateReceived,
-                            status: "Received",
-                        })
-                        .returning();
-                    importedInvoices.push(invoice.id);
+                    const existingInvoice = await db.query.invoices.findFirst({
+                        where: (i, { and: a, eq: e }) =>
+                            a(
+                                e(i.projectId, projectId!),
+                                e(i.invoiceNumber, inv.invoiceNumber),
+                            ),
+                    });
+
+                    if (existingInvoice) {
+                        const [updated] = await db
+                            .update(schema.invoices)
+                            .set({
+                                contractId: contract.id,
+                                vendor: inv.vendor,
+                                totalAmount: inv.totalAmount,
+                                dateReceived: inv.dateReceived,
+                                status: "Received",
+                            })
+                            .where(eq(schema.invoices.id, existingInvoice.id))
+                            .returning();
+                        importedInvoices.push(updated.id);
+                    } else {
+                        const [invoice] = await db
+                            .insert(schema.invoices)
+                            .values({
+                                projectId: projectId!,
+                                contractId: contract.id,
+                                invoiceNumber: inv.invoiceNumber,
+                                vendor: inv.vendor,
+                                totalAmount: inv.totalAmount,
+                                dateReceived: inv.dateReceived,
+                                status: "Received",
+                            })
+                            .returning();
+                        importedInvoices.push(invoice.id);
+                    }
                 }
             }
 
