@@ -4,7 +4,7 @@
 
 ---
 
-## Last Updated: 2026-02-26T14:55
+## Last Updated: 2026-03-05T11:20
 
 ### What Is Built
 
@@ -57,24 +57,33 @@
 - [x] Docker smoke test — image builds, servers start, health + API verified
 
 **Module 7: Documentation (COMPLETE)**
-- [x] PRD v1.1.0 — all 7 sections populated, V2 acceptance criteria checked off
+- [x] PRD v1.4.0 — metadata/changelog synchronized and cross-cutting cleanup/consistency section added
 - [x] Demo instructions + customer review script
 - [x] Agentic setup replication guide
+- [x] New package PRDs: `legacy-cleanup-prd.md`, `ui-ux-consistency-prd.md`
 - [x] Memory bank synced
+
+**Module 8: Legacy Cleanup + UI/UX Consistency (COMPLETE)**
+- [x] Installed external skill toolkit: `doc`, `playwright`, `screenshot`, `spreadsheet`, `pdf`
+- [x] Reconciled migration reference drift in memory/governance metadata to current baseline migration name
+- [x] Added explicit utility ownership script: `npm run docs:generate-demo`
+- [x] Added shared frontend primitives: status badge, modal shell, entity/source links, invoice document link group, route helpers
+- [x] Adopted shared primitives across target pages: ProjectsList, NewProjectModal, SyncSettings, ProjectDetail, InvoiceSearch, InvoicePipeline, GrantPackage, InvoiceDetailPanel
 
 **Cross-cutting patterns implemented:**
 - [x] Universal contextual navigation (all identifiers are links)
 - [x] Source document provenance (📄 View Source on invoices + contracts)
 - [x] MVP/Vision view mode toggle
+- [x] Shared interaction primitives for status/modals/entity+source links
 
 ### What Is Next
-- [ ] MVP PRD document with screenshots
-- [ ] Customer demo preparation
-- [ ] Push to remote
+- [ ] Add Playwright visual regression suite for desktop/mobile consistency snapshots
+- [ ] Continue ProjectDetail decomposition into smaller tab components
+- [ ] Enforce `[trace:]` tags on all new commits to restore reviewer-gate compliance trend
+- [ ] Push to remote / draft PR workflow
 
 ### Blockers
 - None currently
 
 ### Active Module
-All modules complete (2026-02-26)
-
+All modules complete (2026-03-05)

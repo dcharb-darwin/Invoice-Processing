@@ -1,9 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate, formatPercent } from "../lib/format.js";
-import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
+import { sourceLabel, contractLabel } from "../lib/sourceLabels.js";
+import StatusBadge from "../components/StatusBadge.js";
+import SourceDocLink from "../components/SourceDocLink.js";
+import InvoiceDocumentLinks from "../components/InvoiceDocumentLinks.js";
 import InvoiceDetailPanel from "./InvoiceDetailPanel.js";
+import PhasesTab from "./projectDetail/PhasesTab.js";
 import { useViewMode } from "../lib/ViewModeContext.js";
+import { topTabButtonClass } from "../lib/navigationStyles.js";
 
 /**
  * Project detail page — tabbed view with budget, contracts, invoices, funding, ROW.
@@ -195,7 +200,7 @@ export default function ProjectDetail({
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                         <h2 className="text-2xl font-bold">{project.name}</h2>
-                        <span className="text-xs font-semibold text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30 px-2.5 py-1 rounded-md">
+                        <span className="ipc-cfp-badge">
                             CFP #{project.cfpNumber}
                         </span>
                         <span
@@ -300,11 +305,8 @@ export default function ProjectDetail({
                     <button
                         key={tab.key}
                         onClick={() => { clearDrillThrough(); setActiveTab(tab.key); }}
-                        className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.key
-                            ? "border-blue-600 text-blue-700 dark:text-blue-300"
-                            : "border-transparent hover:text-blue-600"
-                            }`}
-                        style={activeTab !== tab.key ? { color: "var(--color-text-secondary)" } : undefined}
+                        className={topTabButtonClass(activeTab === tab.key)}
+                        aria-pressed={activeTab === tab.key}
                     >
                         {tab.label}
                         {tab.count !== undefined && (
@@ -561,7 +563,11 @@ function ContractsTab({ project, onAddSupplement, onNavigateToInvoices, highligh
                                                         <span className="font-mono text-xs text-blue-700 dark:text-blue-300">{inv.invoiceNumber}</span>
                                                         <StatusBadge status={inv.status} />
                                                         {inv.sourcePdfPath && (
-                                                            <span className={`text-[10px] ${sourceLabel(inv.sourcePdfPath).className}`}>{sourceLabel(inv.sourcePdfPath).text}</span>
+                                                            <SourceDocLink
+                                                                path={inv.sourcePdfPath}
+                                                                context="Source"
+                                                                className={`text-[10px] ${sourceLabel(inv.sourcePdfPath).className}`}
+                                                            />
                                                         )}
                                                     </div>
                                                     <span className="font-medium">{formatMoney(inv.totalAmount)}</span>
@@ -640,15 +646,11 @@ function InvoicesTab({ project, showForm, onToggleForm, onCreateInvoice, filter,
                                         </span>
                                         <StatusBadge status={inv.status} />
                                         {(inv.sourcePdfPath || inv.signedPdfPath) && (
-                                            <span className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                                {inv.sourcePdfPath && (
-                                                    <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${sourceLabel(inv.sourcePdfPath).className}`}>{sourceLabel(inv.sourcePdfPath).text}</a>
-                                                )}
-                                                {inv.sourcePdfPath && inv.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
-                                                {inv.signedPdfPath && (
-                                                    <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${signedLabel(inv.signedPdfPath).className}`}>{signedLabel(inv.signedPdfPath).text}</a>
-                                                )}
-                                            </span>
+                                            <InvoiceDocumentLinks
+                                                sourcePdfPath={inv.sourcePdfPath}
+                                                signedPdfPath={inv.signedPdfPath}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
                                         )}
                                         {hasBreakdowns && (
                                             <span className="text-xs transition-transform duration-200" style={{ color: "var(--color-text-muted)", display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
@@ -867,21 +869,6 @@ function ParcelsTab({ project }: { project: any }) {
     );
 }
 
-function StatusBadge({ status }: { status: string }) {
-    const colors: Record<string, string> = {
-        Received: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
-        Logged: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-        Reviewed: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-        Signed: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-        Paid: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-    };
-    return (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded ${colors[status] || colors.Received}`}>
-            {status}
-        </span>
-    );
-}
-
 function FormInput({ label, value, onChange, type = "text", required = false }: {
     label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean;
 }) {
@@ -894,104 +881,6 @@ function FormInput({ label, value, onChange, type = "text", required = false }: 
         </div>
     );
 }
-
-// ============================================================
-// Phases Tab — 875 Standard checklist
-// [trace: 00-discovery-extraction.md L395-407]
-// ============================================================
-
-function PhasesTab({ project, onUpdate }: { project: any; onUpdate: () => void }) {
-    const updateChecklist = trpc.templates.updatePhaseChecklist.useMutation({
-        onSuccess: () => onUpdate(),
-    });
-
-    const phases = [...(project.phases || [])].sort((a: any, b: any) => a.order - b.order);
-
-    const toggleItem = (phase: any, itemIndex: number) => {
-        const checklist = JSON.parse(phase.checklist || "[]");
-        checklist[itemIndex].done = !checklist[itemIndex].done;
-        updateChecklist.mutate({ phaseId: phase.id, checklist });
-    };
-
-    if (phases.length === 0) {
-        return (
-            <div className="text-center py-12" style={{ color: "var(--color-text-muted)" }}>
-                <p className="text-lg mb-2">No phases defined</p>
-                <p className="text-sm">Create this project from a template to get 875 Standard phases.</p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-4">
-            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "var(--color-text-muted)" }}>
-                875 Capital Project File Structure — Phase Tracking
-            </p>
-            {phases.map((phase: any) => {
-                const checklist = JSON.parse(phase.checklist || "[]");
-                const doneCount = checklist.filter((c: any) => c.done).length;
-                const total = checklist.length;
-                const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-
-                const statusColor =
-                    phase.status === "Complete" ? "bg-emerald-500" :
-                        phase.status === "In Progress" ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600";
-
-                return (
-                    <div
-                        key={phase.id}
-                        className="rounded-xl border p-4"
-                        style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-2.5 h-2.5 rounded-full ${statusColor}`} />
-                                <h4 className="font-semibold text-sm">{phase.name}</h4>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800"
-                                    style={{ color: "var(--color-text-secondary)" }}>
-                                    {phase.status}
-                                </span>
-                            </div>
-                            <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-                                {doneCount}/{total} ({pct}%)
-                            </span>
-                        </div>
-
-                        {/* Progress bar */}
-                        <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
-                            <div
-                                className={`h-full rounded-full transition-all ${pct === 100 ? "bg-emerald-500" : "bg-blue-500"
-                                    }`}
-                                style={{ width: `${pct}%` }}
-                            />
-                        </div>
-
-                        {/* Checklist items */}
-                        <div className="space-y-1.5">
-                            {checklist.map((item: any, i: number) => (
-                                <label
-                                    key={i}
-                                    className="flex items-center gap-2.5 py-1 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={item.done}
-                                        onChange={() => toggleItem(phase, i)}
-                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span className={`text-sm ${item.done ? "line-through opacity-50" : ""}`}>
-                                        {item.item}
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
-
 
 // ============================================================
 // Auto-Sync Toggle — per-project override

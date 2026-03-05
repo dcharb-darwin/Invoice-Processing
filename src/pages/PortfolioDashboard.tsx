@@ -188,7 +188,7 @@ export default function PortfolioDashboard({
                     <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
                         <div className="flex items-center gap-3">
                             <h3 className="font-semibold text-base">{projectDetail.name}</h3>
-                            <span className="text-xs font-semibold text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
+                            <span className="ipc-cfp-badge">
                                 CFP #{projectDetail.cfpNumber}
                             </span>
                             {projectAlerts && projectAlerts.length > 0 && (

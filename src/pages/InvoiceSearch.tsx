@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney, formatDate } from "../lib/format.js";
-import { sourceLabel, signedLabel, contractLabel } from "../lib/sourceLabels.js";
+import { projectTabHash } from "../lib/routes.js";
+import StatusBadge from "../components/StatusBadge.js";
+import SourceDocLink from "../components/SourceDocLink.js";
+import InvoiceDocumentLinks from "../components/InvoiceDocumentLinks.js";
+import EntityLink from "../components/EntityLink.js";
 
 /**
  * Invoice search — matches TaskLine light-mode design.
@@ -21,14 +25,6 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
         e.preventDefault();
         setSearchTerm(query);
         setExpandedId(null);
-    };
-
-    const statusColors: Record<string, string> = {
-        Received: "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300",
-        Logged: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-        Reviewed: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-        Signed: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-        Paid: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
     };
 
     return (
@@ -92,9 +88,7 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                             <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
                                                 {inv.invoiceNumber}
                                             </span>
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColors[inv.status ?? "Received"]}`}>
-                                                {inv.status}
-                                            </span>
+                                            <StatusBadge status={inv.status ?? "Received"} />
                                         </div>
                                         <span className="font-bold">{formatMoney(inv.totalAmount)}</span>
                                     </div>
@@ -170,11 +164,11 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                                     <div>
                                                         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Number</p>
                                                         <p className="font-medium font-mono text-xs">
-                                                            <a
-                                                                href={`#/project/${inv.projectId}/contracts`}
+                                                            <EntityLink
+                                                                href={projectTabHash(inv.projectId, "contracts")}
                                                                 className="text-blue-700 dark:text-blue-300 hover:underline"
                                                                 onClick={(e) => e.stopPropagation()}
-                                                            >{(inv as any).contract.contractNumber || "—"}</a>
+                                                            >{(inv as any).contract.contractNumber || "—"}</EntityLink>
                                                         </p>
                                                     </div>
                                                     <div>
@@ -182,7 +176,11 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                                         <p className="font-medium flex items-center gap-1.5">
                                                             {(inv as any).contract.type}
                                                             {(inv as any).contract.signedDocumentLink && (
-                                                                <a href={(inv as any).contract.signedDocumentLink} target="_blank" rel="noopener noreferrer" className={`text-xs ${contractLabel((inv as any).contract.signedDocumentLink).className}`} onClick={(e) => e.stopPropagation()}>{contractLabel((inv as any).contract.signedDocumentLink).text}</a>
+                                                                <SourceDocLink
+                                                                    path={(inv as any).contract.signedDocumentLink}
+                                                                    context="Contract"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                />
                                                             )}
                                                         </p>
                                                     </div>
@@ -194,15 +192,11 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
                                         {(inv.sourcePdfPath || inv.signedPdfPath) && (
                                             <div className="rounded-lg shadow-sm p-3" style={{ backgroundColor: "var(--color-bg)", border: "1px solid var(--color-border-light)" }}>
                                                 <p className="text-xs font-medium mb-2" style={{ color: "var(--color-text-muted)" }}>Documents</p>
-                                                <div className="flex items-center gap-1.5">
-                                                    {inv.sourcePdfPath && (
-                                                        <a href={inv.sourcePdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${sourceLabel(inv.sourcePdfPath).className}`} onClick={(e) => e.stopPropagation()}>{sourceLabel(inv.sourcePdfPath).text}</a>
-                                                    )}
-                                                    {inv.sourcePdfPath && inv.signedPdfPath && <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>·</span>}
-                                                    {inv.signedPdfPath && (
-                                                        <a href={inv.signedPdfPath} target="_blank" rel="noopener noreferrer" className={`text-xs ${signedLabel(inv.signedPdfPath).className}`} onClick={(e) => e.stopPropagation()}>{signedLabel(inv.signedPdfPath).text}</a>
-                                                    )}
-                                                </div>
+                                                <InvoiceDocumentLinks
+                                                    sourcePdfPath={inv.sourcePdfPath}
+                                                    signedPdfPath={inv.signedPdfPath}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
                                             </div>
                                         )}
 
@@ -224,13 +218,13 @@ export default function InvoiceSearch({ onSelectProject }: { onSelectProject: (i
 
                                         {/* View in Project link */}
                                         <div className="pt-2 border-t" style={{ borderColor: "var(--color-border-light)" }}>
-                                            <a
-                                                href={`#/project/${inv.projectId}/invoices`}
+                                            <EntityLink
+                                                href={projectTabHash(inv.projectId, "invoices")}
                                                 className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 View in Project →
-                                            </a>
+                                            </EntityLink>
                                         </div>
                                     </div>
                                 )}

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc.js";
 import { formatMoney } from "../lib/format.js";
+import { projectsHash } from "../lib/routes.js";
+import ModalShell from "../components/ModalShell.js";
 import NewProjectModal from "./NewProjectModal.js";
 import SyncSettings from "./SyncSettings.js";
 
@@ -124,7 +126,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                         >
                             <div className="p-5">
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className="text-xs font-semibold text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30 px-2.5 py-1 rounded-md">
+                                    <span className="ipc-cfp-badge">
                                         CFP #{project.cfpNumber || "—"}
                                     </span>
                                     <div className="flex items-center gap-2">
@@ -216,16 +218,14 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
             </div>
 
             {/* TaskLine Import Modal */}
-            {showTasklineModal && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center"
-                    onClick={(e) => { if (e.target === e.currentTarget) setShowTasklineModal(false); }}
-                    style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
-                >
-                    <div
-                        className="rounded-xl border shadow-2xl overflow-hidden"
-                        style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", width: "600px", maxHeight: "70vh" }}
-                    >
+            <ModalShell
+                open={showTasklineModal}
+                onClose={() => setShowTasklineModal(false)}
+                panelClassName="rounded-xl border shadow-2xl overflow-hidden"
+                panelStyle={{ width: "600px", maxHeight: "70vh" }}
+                backdropClassName="fixed inset-0 z-50 flex items-center justify-center"
+                backdropStyle={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
+            >
                         <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
                             <h3 className="font-semibold">Import from TaskLine</h3>
                             <button onClick={() => setShowTasklineModal(false)} className="text-sm hover:text-red-500 p-1" style={{ color: "var(--color-text-muted)" }}>✕</button>
@@ -253,7 +253,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                         </div>
                                         {tlp.alreadyLinked ? (
                                             <a
-                                                href={`#/projects`}
+                                                href={projectsHash()}
                                                 className="text-xs font-medium text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-md bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
                                                 title="View in Invoice Processing"
                                             >
@@ -272,9 +272,7 @@ export default function ProjectsList({ onSelectProject }: { onSelectProject: (id
                                 ))
                             )}
                         </div>
-                    </div>
-                </div>
-            )}
+            </ModalShell>
 
             <NewProjectModal
                 open={showNewProjectModal}

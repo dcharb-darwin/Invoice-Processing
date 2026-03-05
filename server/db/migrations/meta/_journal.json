@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1772064422255,
-      "tag": "0000_flawless_yellowjacket",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1772143654936,
-      "tag": "0001_dashing_skaar",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1772144489292,
-      "tag": "0002_cuddly_shotgun",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1772145450410,
-      "tag": "0003_right_pyro",
+      "when": 1772645483733,
+      "tag": "0000_grey_oracle",
       "breakpoints": true
     }
   ]

@@ -25,6 +25,11 @@
   --color-header-bg: #ffffff;
   --color-badge-bg: #f1f5f9;
   --color-badge-text: #475569;
+  --color-nav-active-bg: #1d4ed8;
+  --color-nav-active-text: #ffffff;
+  --color-nav-active-border: #1d4ed8;
+  --color-nav-hover-bg: #e2e8f0;
+  --color-nav-inactive-text: #475569;
 }
 
 .dark {
@@ -39,6 +44,11 @@
   --color-header-bg: #0f172a;
   --color-badge-bg: #334155;
   --color-badge-text: #cbd5e1;
+  --color-nav-active-bg: #3b82f6;
+  --color-nav-active-text: #0f172a;
+  --color-nav-active-border: #60a5fa;
+  --color-nav-hover-bg: #334155;
+  --color-nav-inactive-text: #cbd5e1;
 }
 
 body {
@@ -66,4 +76,99 @@ body {
 
 .animate-flash-yellow {
   animation: flash-yellow 1.5s ease-out;
+}
+
+.ipc-nav-button {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  color: var(--color-nav-inactive-text);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ipc-nav-button:hover {
+  background-color: var(--color-nav-hover-bg);
+}
+
+.ipc-nav-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ipc-nav-button--active {
+  background-color: var(--color-nav-active-bg);
+  color: var(--color-nav-active-text);
+  border-color: var(--color-nav-active-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.ipc-top-tab {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  color: var(--color-nav-inactive-text);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ipc-top-tab:hover {
+  background-color: var(--color-nav-hover-bg);
+}
+
+.ipc-top-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ipc-top-tab--active {
+  background-color: var(--color-nav-active-bg);
+  color: var(--color-nav-active-text);
+  border-bottom-color: var(--color-nav-active-border);
+}
+
+.ipc-doc-tab {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  color: var(--color-nav-inactive-text);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ipc-doc-tab:hover {
+  background-color: var(--color-nav-hover-bg);
+}
+
+.ipc-doc-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ipc-doc-tab--active {
+  background-color: var(--color-nav-active-bg);
+  color: var(--color-nav-active-text);
+  border-color: var(--color-nav-active-border);
+}
+
+.ipc-cfp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.dark .ipc-cfp-badge {
+  background-color: var(--color-nav-active-bg);
+  color: #0f172a;
 }

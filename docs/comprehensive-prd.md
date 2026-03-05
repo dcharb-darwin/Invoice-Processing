@@ -1,8 +1,8 @@
 # Invoice Processing Coordinator — Comprehensive PRD
 
-> **Version:** 1.1.0
+> **Version:** 1.4.1
 > **Status:** V1 + V2 COMPLETE — Modules 1-5 implemented
-> **Last Updated:** 2026-02-26
+> **Last Updated:** 2026-03-05
 > **Primary Deliverable** — This document IS the product. The prototype code is disposable.
 
 ---
@@ -530,6 +530,35 @@ Extracted data is NEVER auto-saved. The PM sees:
 
 PDF parsing is MVP because it directly eliminates the single highest-volume repetitive task described in discovery.
 
+### 3.10 Legacy Cleanup + UI/UX Consistency Program (cross-cutting pattern)
+
+This program standardizes repository governance and cross-surface UI behavior while preserving TaskLine visual parity.
+
+**PRD-first requirement:** implementation starts only after:
+- `docs/prd-package/legacy-cleanup-prd.md` is updated
+- `docs/prd-package/ui-ux-consistency-prd.md` is updated
+- this comprehensive PRD changelog/header is synchronized
+
+**Shared infrastructure requirement:** these patterns must be implemented once and consumed everywhere:
+- canonical `StatusBadge` mapping for invoice lifecycle states
+- shared `ModalShell` behavior (backdrop, close affordances, layout contract)
+- shared entity/source-document links (`EntityLink`, `SourceDocLink`)
+- canonical hash route helper for project tab deep-links
+- shared navigation active-state contract for top-level nav/tab controls
+
+**Affected surfaces (must stay consistent):**
+- Project detail (budget/contracts/invoices drill-through)
+- Invoice search
+- Invoice pipeline
+- Grant package
+- Template/sync modals
+
+**Navigation visibility + viewport control requirement:**
+- active top navigation states (global route nav, project tabs, modal doc tabs) must use high-contrast selected styling with clear active indicator beyond color-only text
+- Invoice Pipeline edit modal must support maximize/restore while preserving existing close semantics (escape, backdrop, close button)
+
+**Governance alignment requirement:** migration metadata, module registry, and PRD metadata must reference the same active baseline migration chain.
+
 ---
 
 ## 4. API Reference
@@ -858,6 +887,18 @@ From `01-development-plan.md` — checked off based on implementation state.
 ---
 
 ## PRD Changelog
+
+### v1.4.1 — 2026-03-05
+- Added explicit navigation visibility contract to Section 3.10: selected states on top nav/tab controls must be high-contrast and not color-only.
+- Added modal viewport control requirement to Section 3.10: Invoice Pipeline edit popup must support maximize/restore with existing close behavior preserved.
+- Added PRD package details in `docs/prd-package/ui-ux-consistency-prd.md` under `Navigation Visibility & Modal Viewport Control`.
+- Version bumped to reflect cross-surface navigation + modal visibility remediation.
+
+### v1.4.0 — 2026-03-05
+- Added `docs/prd-package/legacy-cleanup-prd.md` defining tracked-file cleanup matrix, migration baseline policy, governance synchronization, and acceptance criteria.
+- Added `docs/prd-package/ui-ux-consistency-prd.md` defining shared primitives (`StatusBadge`, `ModalShell`, entity/source links, route helper), cross-surface consistency matrix, and accessibility/responsive requirements.
+- Added Section 3.10 in the comprehensive PRD to formalize cross-cutting cleanup + consistency behavior.
+- Synchronized PRD header metadata (version/date) with changelog state.
 
 ### v1.3.0 — 2026-03-01
 - **PDF Invoice Parsing Engine** — Section 3.9 added. Provider-agnostic extraction architecture with pluggable backends (local pdf-parse for MVP, Bedrock/private GPU for future). Vendor-template system, per-field confidence scoring, mandatory human review flow.

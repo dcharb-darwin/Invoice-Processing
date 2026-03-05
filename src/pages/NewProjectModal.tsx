@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "../lib/trpc.js";
+import ModalShell from "../components/ModalShell.js";
 
 /**
  * New Project from Template modal.
@@ -82,44 +83,47 @@ export default function NewProjectModal({
         });
     };
 
-    if (!open) return null;
+    const labelStyle = { color: "var(--color-text-secondary)" };
+    const helperStyle = { color: "var(--color-text-muted)" };
+    const inputStyle = {
+        backgroundColor: "var(--color-surface)",
+        borderColor: "var(--color-border)",
+        color: "var(--color-text)",
+    };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            onClick={(e) => e.target === e.currentTarget && onClose()}
+        <ModalShell
+            open={open}
+            onClose={onClose}
+            panelClassName="rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[85vh] overflow-y-auto"
         >
-            <div
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[85vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-            >
                 {/* Header */}
-                <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 rounded-t-2xl flex items-center justify-between z-10">
+                <div className="sticky top-0 px-6 py-4 rounded-t-2xl flex items-center justify-between z-10 border-b" style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}>
                     <h2 className="text-lg font-bold">New Project from Template</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                    <button onClick={onClose} className="text-xl hover:text-red-500" style={{ color: "var(--color-text-muted)" }}>✕</button>
                 </div>
 
                 <div className="px-6 py-5 space-y-6">
                     {/* Template selector */}
                     {templates && templates.length > 0 && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Template</label>
+                            <label className="block text-sm font-medium mb-1" style={labelStyle}>Template</label>
                             <div className="flex gap-2">
                                 {templates.map((t) => (
                                     <button
                                         key={t.id}
                                         onClick={() => setSelectedTemplateId(t.id)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${selectedTemplateId === t.id
-                                                ? "bg-indigo-600 text-white border-indigo-600"
-                                                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-400"
-                                            }`}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors"
+                                        style={selectedTemplateId === t.id
+                                            ? { backgroundColor: "var(--color-primary)", borderColor: "var(--color-primary)", color: "#fff" }
+                                            : { backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
                                     >
                                         {t.name}
                                     </button>
                                 ))}
                             </div>
                             {template && (
-                                <p className="text-xs text-gray-500 mt-1">{template.description}</p>
+                                <p className="text-xs mt-1" style={helperStyle}>{template.description}</p>
                             )}
                         </div>
                     )}
@@ -127,41 +131,45 @@ export default function NewProjectModal({
                     {/* Project basics */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Project Name *</label>
+                            <label className="block text-sm font-medium mb-1" style={labelStyle}>Project Name *</label>
                             <input
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g. Main Street Improvements"
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                style={inputStyle}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">CFP Number</label>
+                            <label className="block text-sm font-medium mb-1" style={labelStyle}>CFP Number</label>
                             <input
                                 type="text"
                                 value={cfpNumber}
                                 onChange={(e) => setCfpNumber(e.target.value)}
                                 placeholder="e.g. 18013"
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                style={inputStyle}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Project Number</label>
+                            <label className="block text-sm font-medium mb-1" style={labelStyle}>Project Number</label>
                             <input
                                 type="text"
                                 value={projectNumber}
                                 onChange={(e) => setProjectNumber(e.target.value)}
                                 placeholder="e.g. RD-101"
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                style={inputStyle}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
+                            <label className="block text-sm font-medium mb-1" style={labelStyle}>Type</label>
                             <select
                                 value={type}
                                 onChange={(e) => setType(e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                style={inputStyle}
                             >
                                 <option value="ST">ST — Streets</option>
                                 <option value="PA">PA — Parks</option>
@@ -170,13 +178,14 @@ export default function NewProjectModal({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Project Manager</label>
+                            <label className="block text-sm font-medium mb-1" style={labelStyle}>Project Manager</label>
                             <input
                                 type="text"
                                 value={pm}
                                 onChange={(e) => setPm(e.target.value)}
                                 placeholder="e.g. Eric"
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                style={inputStyle}
                             />
                         </div>
                     </div>
@@ -184,7 +193,7 @@ export default function NewProjectModal({
                     {/* Budget categories — selectable */}
                     {template && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                            <label className="block text-sm font-medium mb-2" style={labelStyle}>
                                 Budget Categories ({selectedCats.size} of {template.budgetCategories.length} selected)
                             </label>
                             <div className="grid grid-cols-2 gap-2">
@@ -192,14 +201,14 @@ export default function NewProjectModal({
                                     <button
                                         key={cat.category}
                                         onClick={() => toggleCat(i)}
-                                        className={`text-left px-3 py-2 rounded-lg border text-sm transition-all ${selectedCats.has(i)
-                                                ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600"
-                                                : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-50"
-                                            }`}
+                                        className="text-left px-3 py-2 rounded-lg border text-sm transition-all"
+                                        style={selectedCats.has(i)
+                                            ? { backgroundColor: "var(--color-badge-bg)", borderColor: "var(--color-primary)" }
+                                            : { backgroundColor: "var(--color-bg)", borderColor: "var(--color-border)", opacity: 0.65 }}
                                     >
                                         <span className="mr-2">{selectedCats.has(i) ? "☑" : "☐"}</span>
                                         <span className="font-medium">{cat.category.replace(/_/g, " ")}</span>
-                                        <span className="text-xs text-gray-500 block ml-6">{cat.description}</span>
+                                        <span className="text-xs block ml-6" style={helperStyle}>{cat.description}</span>
                                     </button>
                                 ))}
                             </div>
@@ -209,7 +218,7 @@ export default function NewProjectModal({
                     {/* Phases — selectable */}
                     {template && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                            <label className="block text-sm font-medium mb-2" style={labelStyle}>
                                 875 Standard Phases ({selectedPhases.size} of {template.phases.length} selected)
                             </label>
                             <div className="space-y-2">
@@ -217,14 +226,14 @@ export default function NewProjectModal({
                                     <button
                                         key={phase.name}
                                         onClick={() => togglePhase(i)}
-                                        className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-all ${selectedPhases.has(i)
-                                                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-600"
-                                                : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-50"
-                                            }`}
+                                        className="w-full text-left px-3 py-2 rounded-lg border text-sm transition-all"
+                                        style={selectedPhases.has(i)
+                                            ? { backgroundColor: "var(--color-badge-bg)", borderColor: "var(--color-primary)" }
+                                            : { backgroundColor: "var(--color-bg)", borderColor: "var(--color-border)", opacity: 0.65 }}
                                     >
                                         <span className="mr-2">{selectedPhases.has(i) ? "☑" : "☐"}</span>
                                         <span className="font-medium">{phase.name}</span>
-                                        <span className="text-xs text-gray-500 ml-2">
+                                        <span className="text-xs ml-2" style={helperStyle}>
                                             ({phase.checklist.length} checklist items)
                                         </span>
                                     </button>
@@ -235,27 +244,28 @@ export default function NewProjectModal({
                 </div>
 
                 {/* Footer */}
-                <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-2xl flex items-center justify-between">
-                    <p className="text-xs text-gray-500">
+                <div className="sticky bottom-0 px-6 py-4 rounded-b-2xl flex items-center justify-between border-t" style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}>
+                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                         Will create: {selectedCats.size} budget categories, {selectedPhases.size} phases
                     </p>
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            className="px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
+                            style={{ borderColor: "var(--color-border)", color: "var(--color-text)", backgroundColor: "var(--color-surface)" }}
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleCreate}
                             disabled={!name.trim() || createMutation.isPending}
-                            className="px-5 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                            className="px-5 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition-opacity disabled:opacity-50"
+                            style={{ backgroundColor: "var(--color-primary)" }}
                         >
                             {createMutation.isPending ? "Creating…" : "Create Project"}
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
+        </ModalShell>
     );
 }
